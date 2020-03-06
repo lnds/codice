@@ -1,0 +1,23 @@
+{% extends 'codice/bootstrap4.html' %}
+{% load static %}
+{% block bootstrap4_title %}
+{% block title %}
+CODICE
+{% endblock title %}
+{% endblock bootstrap4_title %}
+
+{% block bootstrap4_before_content%}
+<div class="logo">
+    <a href="#% url '#home' %}"><img src="{% static 'img/logo.png' %}" style="border: 0px; margin: 0px"></a>
+    <span class="divider" >&nbsp|&nbsp;</span>
+    {% block breadcrumb_path %}
+        <b>{{ user.name }}</b>
+    {% endblock %}
+</div>
+{% endblock bootstrap4_before_content %}
+
+{% block bootstrap4_content %}
+{% block content %}
+{% endblock content %}
+
+{% endblock %}

@@ -12,5 +12,13 @@ This release requires
 - Pipenv
 - Posgresql
 
+## GUI
+
+Theme taken from: https://github.com/flatlogic/light-blue-dashboard
+
+
+# Copyright 
+
+See LICENSE file
 
 (c) 2020 Eduardo Díaz Cortés

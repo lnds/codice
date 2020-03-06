@@ -9,6 +9,8 @@ django-debug-toolbar = "*"
 [packages]
 django = "==3.0.*"
 psycopg2 = "==2.8.*"
+django-bootstrap4 = "==1.1.1"
+django-fontawesome-5 = "==1.0.18"
 
 [requires]
 python_version = "3.8"
