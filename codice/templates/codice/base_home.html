@@ -30,9 +30,9 @@
                                 </a>
                         </li>
                         <li class="hidden-xs">
-                            <a href="#% url 'home' %}"><i class="glyphicon glyphicon-home"></i></a>
+                            <a href="{% url 'home' %}"><i class="glyphicon glyphicon-home"></i></a>
                         </li>
-                        <li class="hidden-xs"><a href="#% url 'logout' %}"><i class="glyphicon glyphicon-off"></i></a></li>
+                        <li class="hidden-xs"><a href="{% url 'logout' %}"><i class="glyphicon glyphicon-off"></i></a></li>
                     </ul>
                     {% block search_form %}
                     {% endblock %}

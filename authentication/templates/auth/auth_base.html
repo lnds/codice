@@ -1,0 +1,35 @@
+{% extends 'codice/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load bootstrap4 %}
+{% block content %}
+    <div class="single-widget-container">
+        <section class="widget login-widget">
+
+            <header class="text-align-center">
+                <img src="{% static 'img/logo.png' %}">
+                <h4>{% block caption %}{% endblock %}</h4>
+            </header>
+            <div class="body">
+                <form class="no-margin" id="loginform" method="post">
+                    {% csrf_token %}
+                    {% block form_fields %}
+                    {% endblock form_fields %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close" >
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                    <div class="form-actions">
+                        {% block form_buttons %}
+                        {% endblock %}
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+
+{% endblock %}

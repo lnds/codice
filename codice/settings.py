@@ -46,6 +46,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
+    'authentication',
     'dashboard'
 ]
 
@@ -85,13 +86,6 @@ WSGI_APPLICATION = 'codice.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
 
 if os.environ.get('DATABASE_URL'):
     USER, PASSWORD, HOST, PORT, NAME = re.match(
@@ -161,5 +155,11 @@ STATIC_ROOT = os.environ.get('STATIC', '/static')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
+
+
+LOGIN_URL = 'login'
+LOGOUT_URL = 'logout'
+LOGIN_REDIRECT_URL = 'dashboard'
+
 
 CODICE_VERSION = "0.1.0"

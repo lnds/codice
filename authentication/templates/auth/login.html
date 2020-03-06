@@ -1,0 +1,41 @@
+{% extends 'auth/auth_base.html' %}
+{% load static %}
+{% load i18n %}
+{% load bootstrap4 %}
+{% block caption %}
+{% trans 'Login to your account' %}
+{% endblock %}
+{% block form_fields %}
+<input type="hidden" name="next" value="{{ next }}" />
+<fieldset>
+   <div class="form-group ">
+        <label for="id_username">{% trans 'Username' %}</label>
+       <div class="input-group">
+           <span class="input-group-addon">
+               <i class="fa fa-user"></i>
+           </span>
+           <input type="text" name="username"
+                  autofocus maxlength="254" class="form-control"
+                  placeholder="{% trans 'Username' %}" required id="id_username" />
+       </div>
+   </div>
+    <div class="form-group ">
+        <label for="id_password">{% trans 'Password' %}</label>
+        <div class="input-group">
+            <span class="input-group-addon">
+                <i class="fa fa-lock"></i>
+            </span>
+            <input type="password" name="password"
+                   class="form-control" placeholder="{% trans 'Password' %}"
+                   required id="id_password" />
+        </div>
+    </div>
+</fieldset>
+{% endblock %}
+{% block form_buttons %}
+<button class="btn btn-block btn-lg btn-danger" type="submit">
+    <span class="small-circle"><i class="fa fa-caret-right"></i></span>
+    <small>{%  trans 'Sign In' %}</small>
+</button>
+<a class="forgot" href="{% url 'recover-password' %}">{% trans 'Forgot Username or Password?' %}</a>
+{% endblock %}
