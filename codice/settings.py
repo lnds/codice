@@ -74,6 +74,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'codice.context_processors.codice_version',
             ],
         },
     },
@@ -160,3 +161,5 @@ STATIC_ROOT = os.environ.get('STATIC', '/static')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
+
+CODICE_VERSION = "0.1.0"

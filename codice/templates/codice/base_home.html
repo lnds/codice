@@ -1,0 +1,62 @@
+{% extends 'codice/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block content %}
+    <div class="landing">
+        <div class="container-fluid">
+            <header class="page-header">
+
+                <div class="navbar">
+                    <ul class="nav navbar-nav navbar-right pull-right">
+                        <li class="hidden-xs dropdown">
+                            <a href="#" title="Account" id="account"
+                                       class="dropdown-toggle"
+                                       data-toggle="dropdown">
+                                <i class="glyphicon glyphicon-user"></i>
+                            </a>
+                            <ul id="account-menu" class="dropdown-menu account" role="menu">
+                                <li role="presentation" class="account-picture">
+                                    <img src="{% static 'img/2.png'%}" alt=""> Pepito
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="visible-xs">
+                                <a href="#"
+                                   class="btn-navbar"
+                                   data-toggle="collapse"
+                                   data-target=".sidebar"
+                                   title="">
+                                    <i class="fa fa-bars"></i>
+                                </a>
+                        </li>
+                        <li class="hidden-xs">
+                            <a href="#% url 'home' %}"><i class="glyphicon glyphicon-home"></i></a>
+                        </li>
+                        <li class="hidden-xs"><a href="#% url 'logout' %}"><i class="glyphicon glyphicon-off"></i></a></li>
+                    </ul>
+                    {% block search_form %}
+                    {% endblock %}
+                    {%  if global_notification %}
+                    <div class="notifications pull-right">
+
+                        <div class="alert alert-danger pull-right">
+                            <a href="#" class="close ml-xs" data-dismiss="alert">&times;</a>
+                            <i class="fa fa-info-circle mr-xs"></i> {% trans 'global_notification' %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </header>
+            <div class="content">
+                {% include 'codice/layout/messages.html' %}
+                {% block content_body %}
+                {%  endblock %}
+                {% include 'codice/layout/footer.html' %}
+            </div>
+            <div class="loader-wrap hiding hide">
+                <i class="fa fa-circle-o-notch fa-spin"></i>
+            </div>
+        </div>
+    </div>
+{%  endblock %}

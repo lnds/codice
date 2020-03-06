@@ -16,14 +16,8 @@
     <!-- Page title -->
     <title>{% block bootstrap4_title %}django-bootstrap4 template title{% endblock %}</title>
 
-    <link href="{% static 'css/lb-lite/application.css' %}" rel="stylesheet">
-    <!-- Bootstrap CSS -->
-    {% bootstrap_css %}
+    <link href="{% static 'css/application.css' %}" rel="stylesheet">
 
-    <!-- Bootstrap JavaScript if it is in head -->
-    {% if 'javascript_in_head'|bootstrap_setting %}
-        {% bootstrap_javascript %}
-    {% endif %}
 
     {% block bootstrap4_extra_head %}{% endblock %}
 
@@ -34,10 +28,17 @@
 {% block bootstrap4_content %} CONTENT {% endblock %}
 {% block bootstrap4_after_content %}{% endblock %}
 
-<!-- Bootstrap JavaScript if it is in body -->
-{% if not 'javascript_in_head'|bootstrap_setting %}
-    {% bootstrap_javascript %}
-{% endif %}
+
+<!-- common libraries. required for every page-->
+<script src="{% static 'lib/jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'lib/jquery-pjax/jquery.pjax.js' %}"></script>
+<script src="{% static 'lib/bootstrap-sass/assets/javascripts/bootstrap.min.js' %}"></script>
+<script src="{% static 'lib/widgster/widgster.js' %}"></script>
+<script src="{% static 'lib/underscore/underscore.js' %}"></script>
+
+<!-- common application js -->
+<script src="{% static 'js/app.js' %}"></script>
+<script src="{% static 'js/settings.js' %}"></script>
 
 {% block bootstrap4_extra_script %}{% endblock %}
 
