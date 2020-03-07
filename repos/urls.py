@@ -5,6 +5,6 @@ from repos.views import RepositoryList, RepositoryCreate, RepositoryDetail, Repo
 urlpatterns = [
     path('', RepositoryList.as_view(), name='repos'),
     path('detail/<int:pk>/', RepositoryDetail.as_view(), name='repository-alone-detail'),
-    path('add/<int:project_id>/', RepositoryCreate.as_view(), name='repository-add'),
+    path('add/', RepositoryCreate.as_view(), name='repository-add'),
     path('delete/<int:pk>/', RepositoryDelete.as_view(), name='repository-delete'),
 ]

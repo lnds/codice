@@ -1,13 +1,17 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Q
+from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, DetailView, DeleteView
 from django.utils.translation import gettext as _
 
 from repos.forms import RepositoryForm
 from repos.models import Repository
+import logging
 
-'''Needed by of all Repository Views'''
+logger = logging.getLogger(__name__)
+
+
 class RepositoryMixin(LoginRequiredMixin, SuccessMessageMixin):
     model = Repository
 
@@ -23,9 +27,10 @@ class CanSeeRepoMixin(PermissionRequiredMixin):
 
 class CanAdminReposMixin(CanSeeRepoMixin):
     def has_permission(self):
-        return super().has_permission() and self.request.user.can_add_repo() and self.request.user.can_del_repo()
+        result = self.request.user.can_add_repo() and self.request.user.can_del_repo()
+        return result
 
-'''Lists all repos'''
+
 class RepositoryList(RepositoryMixin, ListView):
     context_object_name = 'repo_list'
     template_name = 'repository/list.html'
@@ -42,6 +47,7 @@ class RepositoryCreate(RepositoryMixin, CanAdminReposMixin, CreateView):
     success_message = _('Repository was added successfully')
     template_name = 'repository/add.html'
     form_class = RepositoryForm
+    success_url = '/'
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
