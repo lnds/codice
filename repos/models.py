@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.db import models
+from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from codice import settings
@@ -36,6 +37,9 @@ class Repository(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('repository-detail', kwargs={'pk': self.pk})
 
     def ready(self):
         return self.status == self.Status.OK or self.status == self.Status.ERROR

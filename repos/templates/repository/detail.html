@@ -1,0 +1,67 @@
+{% extends 'codice/base_home.html' %}
+{% load static %}
+{% load i18n %}
+{% load gravatar %}
+{% load humanize %}
+{% load mathfilters %}
+{% load boxes %}
+{% load bootstrap4 %}
+{% block content_body %}
+    <h2 class="page-title">
+        <i class="fas fa-archive"></i> {%trans 'Repository' %}: {{ repository.name}} <small>{% trans 'detail' %}</small>
+    </h2>
+{% endblock %}
+{% block breadcrumb_path %}
+    <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+    <a href="{% url 'repos' %}"><span class="text-gray-lighter">{% trans 'repos' %}</span></a> /
+    <span class="text-gray-light">{{ repository.name|lower }}</span>
+{% endblock %}
+
+{% block top_actions %}
+    <li class="divider"></li>
+    <li>
+        <div class="top_action_button_div dropdown-toggle">
+            <a class="btn btn-sm btn-default" href="{% url 'repos' %}">
+                <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+            </a>
+        </div>
+    </li>
+    {% if user.can_del_repo %}
+    <li class="divider"></li>
+    <li>
+        <div class="top_action_button_div dropdown-toggle">
+            <a href="#" data-toggle="modal" data-target="#deleteRepositoryModal" class="pull-right btn btn-sm  btn-danger">
+                <i class="fas fa-trash"></i> <small>&nbsp;{% trans 'Delete Repository' %}</small>
+            </a>
+            <div id="deleteRepositoryModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="delProjecRepotModalLabel" aria-hidden="true" style="display: none;">
+                <form method="post" action="{% url 'repository-delete' repository.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" id="id_id" name="id" value="{{ repository.id }}">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header alert alert-danger">
+                                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+                                <h4 class="modal-title" id="delProjectRepoModalLabel">{% trans 'Delete Repository' %}</h4>
+                            </div>
+                            <div class="modal-body">
+                                <span class="col-md-12">{% trans 'Do you wish to delete this repository?' %}</span>
+                                <br>
+                                <span class="col-md-12">
+                                    <b>{% trans 'Repository Name' %}:</b> <strong>{{ repository.name | capfirst }}</strong>
+                                </span>
+                                <br/>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-danger waves-effect" >{% trans 'Delete' %}</button>
+                                <button type="button" class="btn btn-default waves-effect" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </li>
+    {% endif %}
+    <li class="divider"></li>
+
+{% endblock %}
