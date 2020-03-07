@@ -37,6 +37,15 @@ class Repository(models.Model):
     def __str__(self):
         return self.name
 
+    def ready(self):
+        return self.status == self.Status.OK or self.status == self.Status.ERROR
+
+    def status_icon(self):
+        result = ['fas fa-spinner', 'fas fa-times', 'fas fa-clone', 'far fa-analytics', 'fas fa-check-circle']
+        return result[self.status]
+
+    def branches_count(self):
+        return self.branch_set.count()
 
 class Branch(models.Model):
     name = models.CharField(max_length=200)
