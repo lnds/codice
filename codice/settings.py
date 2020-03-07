@@ -38,11 +38,14 @@ DJANGO_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
 ]
 
 THIRD_PARTY_APPS = [
     'bootstrap4',
     'fontawesome_5',
+    'django_gravatar',
+    'mathfilters',
 ]
 
 LOCAL_APPS = [

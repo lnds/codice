@@ -1,1 +1,22 @@
 {% extends 'codice/base_home.html' %}
+{% load static %}
+{% load i18n %}
+{% load gravatar %}
+{% load humanize %}
+{% load mathfilters %}
+{% block content_body %}
+    <h2 class="page-title"><i class="fas fa-columns"></i> {% trans 'Dashboard' %}</h2>
+    {% if project_count == 0 and user.can_add_project %}
+        <section class="widget">
+            <div class="body">
+                <div class="jumbotron">
+                    <h2>{% trans 'No projects found' %}</h2>
+                    <p class="lead">{% trans 'You have not created any project yet' %}</p>
+                    <p class="lead">
+                        <a class="btn btn-primary btn-lg" href="{% url 'projects-add' %}" role="button"><i class="fa fa-plus-circle"></i> <small>{% trans 'Add Project' %}</small></a>
+                    </p>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+{% endblock content_body %}
