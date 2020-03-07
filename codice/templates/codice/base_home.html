@@ -15,11 +15,8 @@
                                        data-toggle="dropdown">
                                 <i class="glyphicon glyphicon-user"></i>
                             </a>
-                            <ul id="account-menu" class="dropdown-menu account" role="menu">
-                                <li role="presentation" class="account-picture">
-                                    <img src="{% static 'img/2.png'%}" alt=""> Pepito
-                                </li>
-                            </ul>
+                            {% include 'codice/layout/account_menu.html' %}
+
                         </li>
                         <li class="visible-xs">
                                 <a href="#"
