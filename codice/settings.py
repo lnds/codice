@@ -47,7 +47,8 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'authentication',
-    'dashboard'
+    'dashboard',
+    'repos',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -161,5 +162,6 @@ LOGIN_URL = 'login'
 LOGOUT_URL = 'logout'
 LOGIN_REDIRECT_URL = 'dashboard'
 
+AUTH_USER_MODEL = 'authentication.User'
 
 CODICE_VERSION = "0.1.0"

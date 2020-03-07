@@ -9,4 +9,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - added bootstrap templates
-- [codice-1] - add authorization
+- [codice-1] add authorization
+- [codice-2] add repos
