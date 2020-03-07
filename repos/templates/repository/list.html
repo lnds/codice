@@ -5,6 +5,12 @@
 {% load bootstrap4 %}
 {% block empty_table %}
     <h2>{% trans 'No repositories found' %}</h2>
+    <p class="lead">{% trans 'You have not created any repository yet' %}</p>
+    <p class="lead">
+        <a class="btn btn-primary btn-lg" href="{% url 'repository-add' %}" role="button">
+            <i class="fa fa-plus-circle"></i> <small>{% trans 'Add Repository' %}</small>
+        </a>
+    </p>
 {% endblock empty_table %}
 {% block table_title %}
     <i class="fas fa-archive "></i>
@@ -26,7 +32,7 @@
     <tr>
         <td><i class="{{ repo.status_icon }} {{ repo.status_css }}"></i></td>
         <td class="text-align-left">
-                <a href="{% url 'repository-alone-detail' repo.id %}">
+                <a href="{% url 'repository-detail' repo.id %}">
                 {{ repo.name }}
                 </a>
         </td>
@@ -78,7 +84,7 @@
         </td>
         <td>
             {% if repo.ready %}
-                <a href="{% url 'repository-alone-detail' repo.id %}" class="btn btn-block btn-primary">
+                <a href="{% url 'repository-detail' repo.id %}" class="btn btn-block btn-primary">
                     <i class="fal fa-money-check"></i>
                 </a>
             {% else %}
@@ -90,6 +96,9 @@
     </tr>
 {% endfor %}
 {% endblock %}
+
+
+
 {% block table_footer %}
     {% if page_obj.paginator.count == 0%}
         {% trans 'no repos' %}

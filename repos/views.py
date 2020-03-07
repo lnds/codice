@@ -5,7 +5,6 @@ from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, DetailView, DeleteView
 from django.utils.translation import gettext as _
 
-from repos.forms import RepositoryForm
 from repos.models import Repository
 import logging
 
@@ -46,8 +45,7 @@ class RepositoryList(RepositoryMixin, ListView):
 class RepositoryCreate(RepositoryMixin, CanAdminReposMixin, CreateView):
     success_message = _('Repository was added successfully')
     template_name = 'repository/add.html'
-    form_class = RepositoryForm
-    success_url = '/'
+    fields = ['name', 'url', 'username', 'password', 'branches_to_track', 'default_branch', 'public']
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -68,3 +66,4 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
 
 class RepositoryDelete(RepositoryMixin, CanAdminReposMixin, DeleteView):
     success_message = _('Repository was deleted successfully')
+    success_url = '/repos/'
