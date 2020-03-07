@@ -1,0 +1,28 @@
+{% extends 'codice/base_home.html' %}
+{% load static %}
+{% load i18n %}
+{% load bootstrap4 %}
+{% block content_body %}
+    <h2 class="page-title">{% block form_title %}{% trans 'Add' %}{% endblock %}</h2>
+    <div class="row">
+        {% block form_content %}
+            {% block form_1 %}
+            <div class="{% block form_1_class %}col-md-12{% endblock %}">
+                <section class="widget">
+                    {% block form_1_header %}
+                    <header>
+                        <h4>{% block form_1_caption %}{% endblock %}</h4>
+                    </header>
+                    {% endblock form_1_header %}
+                    {% block form_1_body %}
+                    <div class="body">
+                        {% block form_1_content %}
+                        {% endblock form_1_content %}
+                    </div>
+                    {% endblock form_1_body %}
+                </section>
+            </div>
+            {% endblock form_1 %}
+        {% endblock form_content %}
+    </div>
+{%  endblock content_body %}

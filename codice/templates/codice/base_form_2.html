@@ -1,0 +1,49 @@
+{% extends 'codice/base_home.html' %}
+{% load static %}
+{% load i18n %}
+{% load bootstrap4 %}
+{% block content_body %}
+    <h2 class="page-title">{% block form_title %}{% trans 'Add' %}{% endblock %}</h2>
+    <div class="row">
+        {% block form_content %}
+            {% block form_1 %}
+            <div class="{% block form_1_class %}col-md-8{% endblock %}">
+                <section class="widget">
+                    {% block form_1_header %}
+                    <header>
+                        <h4>{% block form_1_caption %}{% endblock %}</h4>
+                    </header>
+                    {% endblock form_1_header %}
+                    {% block form_1_body %}
+                    <div class="body">
+                        {% block form_1_content %}
+                        {% endblock form_1_content %}
+                    </div>
+                    {% endblock form_1_body %}
+                </section>
+            </div>
+            {% endblock form_1 %}
+            {% block form_2 %}
+            <div class="{% block form_2_class %}col-md-4 flex-grow height-n-250{% endblock %}">
+                <section class="widget">
+                    {% block form_2_header %}
+                        <header>
+                            <h4>{% block form_2_caption %}{% endblock %}</h4>
+                        </header>
+                    {% endblock form_2_header %}
+                    {% block form_2_body %}
+                        <div class="body">
+                            {% block form_2_content %}
+                                <div class="d-flex flex-column height-100">
+                                     <div class="flex-grow">
+                                    </div>
+                                </div>
+                            {% endblock %}
+                        </div>
+                    {% endblock form_2_body %}
+                </section>
+            </div>
+            {% endblock form_2 %}
+        {% endblock form_content %}
+    </div>
+{%  endblock content_body %}

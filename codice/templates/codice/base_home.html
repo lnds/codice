@@ -5,9 +5,10 @@
     <div class="landing">
         <div class="container-fluid">
             <header class="page-header">
-
                 <div class="navbar">
                     <ul class="nav navbar-nav navbar-right pull-right">
+                        {% block top_actions %}
+                        {% endblock %}
                         <li class="hidden-xs dropdown">
                             <a href="#" title="Account" id="account"
                                        class="dropdown-toggle"
@@ -49,6 +50,7 @@
                 </div>
             </header>
             <div class="content">
+                <br/>
                 {% include 'codice/layout/messages.html' %}
                 {% block content_body %}
                 {%  endblock %}
