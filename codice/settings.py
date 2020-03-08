@@ -115,6 +115,24 @@ else:
         }
     }
 
+
+BROKER_TRANSPORT_OPTIONS = {'confirm_publish': True}
+
+if 'DOKKU_RABBITMQ_YELLOW_URL' in os.environ:
+    CELERY_BROKER_URL = os.environ.get('DOKKU_RABBITMQ_YELLOW_URL', "")
+    CELERY_RESULT_BACKEND = os.environ.get('DOKKU_RABBITMQ_YELLOW_URL', "")
+elif 'RABBITMQ_URL' in os.environ:
+    CELERY_BROKER_URL = os.environ.get('RABBITMQ_URL', "")
+    CELERY_RESULT_BACKEND = os.environ.get('RABBITMQ_URL', "")
+elif 'RABBIT_ENV_USER' in os.environ:
+    CELERY_BROKER_URL = 'pyamqp://{user}:{password}@{hostname}/{vhost}'.format(
+        user=os.environ.get('RABBIT_ENV_USER', 'admin'),
+        password=os.environ.get('RABBIT_ENV_RABBITMQ_PASS', 'mypass'),
+        hostname=os.environ.get('RABBIT_HOSTNAME', 'rabbit'),
+        vhost=os.environ.get('RABBIT_VHOST', ''))
+else:
+    CELERY_BROKER_URL = 'pyamqp://localhost'
+
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
 

@@ -14,3 +14,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [codice-9] list repos
 - [codice-8] remove repos
 - [codice-7] add gravatar support
+- [codice-10] clone repo

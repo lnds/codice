@@ -14,13 +14,14 @@ class Repository(models.Model):
 
     class Status(models.IntegerChoices):
         CREATED = 0
-        ERROR = 1
-        CLONING = 2
-        ANALYZING = 3
-        OK = 4
+        ERROR = 10
+        CLONING = 20
+        CLONED = 25
+        ANALYZING = 30
+        OK = 40
 
     name = models.SlugField(max_length=40)
-    url = models.CharField(max_length=200, validators=[git_url_validator])
+    url = models.CharField(max_length=200, validators=[git_url_validator], blank=False)
     branches_to_track = models.CharField(max_length=200, blank=True)
     default_branch = models.CharField(max_length=40, blank=True)
     username = models.CharField(max_length=80, blank=True)
