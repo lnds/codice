@@ -1,0 +1,15 @@
+{% load boxes %}
+{% load mathfilters %}
+{% load humanize %}
+<div class="row">
+    <div class="col-md-6">
+            <div class="row">
+                <a  href=" url 'repo-devs-list' repo.id %}" class="fa fa-git">
+                {% icon_box "col-md-3" "fas fa-users text-info" "description text-info" committer_count|intcomma 'devs' %}
+                </a>
+                {% big_text_box 'col-md-3' 'fas fa-bus' 'big-text text-danger' 'description text-danger' bus_factor|intcomma 'bus factor' %}
+                {% big_text_box 'col-md-3' 'fas fa-code-commit text-success' 'big-text text-success' 'description' commit_count|intcomma 'commits' %}
+                {% big_text_box 'col-md-3' 'fas fa-edit' 'big-text text-primary' 'description text-primary' file_changes_count|intcomma 'changes' %}
+            </div>
+        </div>
+</div>

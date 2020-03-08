@@ -6,6 +6,7 @@ from git import GitCommandError
 
 from authentication.models import User
 from git_interface.giturls import build_repo_url
+from repos.analytics.analyzer import process_repo_objects
 from repos.models import Repository
 import git_interface.gitcmds as git
 
@@ -29,6 +30,8 @@ def clone_remote_repository(owner_id: int, repo_id: int):
         repo.base_directory = path
         repo.status = Repository.Status.CLONED
         repo.save()
+
+        process_repo_objects(repo)
 
         return "Repository {} cloned successfully".format(repo)
     except User.DoesNotExist:

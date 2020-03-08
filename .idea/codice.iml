@@ -29,7 +29,8 @@
         <option value="$MODULE_DIR$/codice/templates" />
         <option value="$MODULE_DIR$/codice/templates/codice" />
         <option value="$MODULE_DIR$/codice/templates/codice/layout" />
-        <option value="$MODULE_DIR$/codice/templates/codice/tools" />
+        <option value="$MODULE_DIR$/dashboard/templates/tools" />
+        <option value="$MODULE_DIR$/repos/templates/repository/blocks" />
       </list>
     </option>
   </component>

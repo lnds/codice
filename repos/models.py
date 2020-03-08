@@ -14,16 +14,16 @@ class Repository(models.Model):
 
     class Status(models.IntegerChoices):
         CREATED = 0
-        ERROR = 10
-        CLONING = 20
-        CLONED = 25
-        ANALYZING = 30
-        OK = 40
+        ERROR = 1
+        CLONING = 2
+        CLONED = 3
+        ANALYZING = 4
+        OK = 5
 
     name = models.SlugField(max_length=40)
     url = models.CharField(max_length=200, validators=[git_url_validator], blank=False)
     branches_to_track = models.CharField(max_length=200, blank=True)
-    default_branch = models.CharField(max_length=40, blank=True)
+    default_branch = models.CharField(max_length=40, blank=True, default="master")
     username = models.CharField(max_length=80, blank=True)
     password = models.CharField(max_length=200, blank=True)
     public = models.BooleanField(default=False)
@@ -46,13 +46,13 @@ class Repository(models.Model):
         return self.status == self.Status.OK or self.status == self.Status.ERROR
 
     def status_icon(self):
-        result = ['fas fa-spinner', 'fas fa-times', 'fas fa-clone', 'far fa-analytics', 'fas fa-check-circle']
+        result = ['fas fa-spinner', 'fas fa-times', 'fas fa-clock','fas fa-clone', 'far fa-analytics', 'fas fa-check-circle']
         return result[self.status]
 
     def branches_count(self):
         return self.branch_set.count()
 
-class Branch(models.Model):
+class   Branch(models.Model):
     name = models.CharField(max_length=200)
     repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
 
