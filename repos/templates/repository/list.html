@@ -30,14 +30,14 @@
 {% block table_body %}
 {% for repo in repo_list %}
     <tr>
-        <td><i class="{{ repo.status_icon }} {{ repo.status_css }}"></i></td>
+        <td><i class="{{ repo.status_icon }} {{ repo.status_css }}"></i> {{ repo.get_status_display }}</td>
         <td class="text-align-left">
                 <a href="{% url 'repository-detail' repo.id %}">
                 {{ repo.name }}
                 </a>
         </td>
         <td class="text-align-left">
-            <a href="{{ repo.url }}">
+            <a href="{{ repo.url }}"  target="_blank">
             {{ repo.url }}
             </a>
         </td>
@@ -48,7 +48,7 @@
         </td>
         <td class="text-align-right">
             {% if repo.ready %}
-            <a href="{% url 'file-list-repo' repo.id %}?from=repos" class="btn btn-block btn-primary">
+            <a href="#% url 'file-list-repo' repo.id %}?from=repos" class="btn btn-block btn-primary">
                 {{ repo.files_count|intcomma }}
             </a>
             {% else %}
@@ -75,7 +75,7 @@
         </td>
         <td class="text-align-right">
             {% if repo.ready %}
-                <a href="{% url 'repo-devs-list' repo.id %}?from=repos" class="btn btn-block btn-info">
+                <a href="#% url 'repo-devs-list' repo.id %}?from=repos" class="btn btn-block btn-info">
                     {{ repo.devs_count|intcomma }}
                 </a>
             {% else %}
@@ -85,7 +85,7 @@
         <td>
             {% if repo.ready %}
                 <a href="{% url 'repository-detail' repo.id %}" class="btn btn-block btn-primary">
-                    <i class="fal fa-money-check"></i>
+                    <i class="fas fa-money-check"></i>
                 </a>
             {% else %}
                 {% trans 'ANALYZING' %}
@@ -110,6 +110,7 @@
 {% endblock %}
 
 {% block top_actions %}
+    {% include 'repository/blocks/add_repo_top_action.html' %}
     <li class="divider"></li>
     <li>
         <div class="top_action_button_div dropdown-toggle">

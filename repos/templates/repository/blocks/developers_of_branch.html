@@ -1,0 +1,48 @@
+{% load i18n %}
+{% load bootstrap4 %}
+<div class="row">
+        <div class="col-md-12">
+            <section class="widget">
+                <header>
+                    <h4>{% trans 'Developers' %}</h4>
+                    <div class="widget-controls">
+                        <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
+                        <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+                    </div>
+                </header>
+                <div class="widget-table-overflow">
+                    <table class="table table m-t-30 table-hover nowrap">
+                        <thead>
+                            <tr>
+                                <th>{%trans 'Author' %}</th>
+                                <th>{%trans 'Commits' %}</th>
+                                <th>{%trans 'Added' %}</th>
+                                <th>{%trans 'Deleted' %}</th>
+                                <th>{%trans 'Net' %}</th>
+                                <th>{%trans 'Active' %}</th>
+                                <th>{%trans 'Last Contribution' %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in devs %}
+                                <tr>
+                                    <td>{{d.author__name}} &lt;{{ d.author__email }}&gt;</td>
+                                    <td class="text-right">{{d.commits}}</td>
+                                    <td class="text-right">{{d.added}}</td>
+                                    <td class="text-right">{{d.deleted}}</td>
+                                    <td class="text-right">{{d.net}}</td>
+                                    <td class="text-left">{{d.min_date|timesince:d.max_date}}</td>
+                                    <td class="text-left">{{d.max_date}}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="clearfix">
+                        {% if devs.paginator.num_pages > 1 %}
+                            {% bootstrap_pagination devs  %}
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+        </div>
+</div>

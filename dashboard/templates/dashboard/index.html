@@ -38,14 +38,7 @@
     {% endif %}
 {% endblock content_body %}
 {% block top_actions %}
-    <li>
-        <div class="top_action_button_div dropdown-toggle">
-            <a class="btn btn-primary" href="{% url 'repository-add' %}" role="button">
-                <i class="fa fa-plus-circle"></i> <small>{% trans 'Add Repository' %}</small>
-            </a>
-        </div>
-
-    </li>
+    {% include 'repository/blocks/add_repo_top_action.html' %}
     <li class="divider"></li>
     <li>&nbsp;</li>
 

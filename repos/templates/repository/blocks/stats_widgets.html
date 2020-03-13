@@ -1,15 +1,48 @@
 {% load boxes %}
 {% load mathfilters %}
 {% load humanize %}
+{% load i18n %}
 <div class="row">
-    <div class="col-md-6">
-            <div class="row">
-                <a  href=" url 'repo-devs-list' repo.id %}" class="fa fa-git">
-                {% icon_box "col-md-3" "fas fa-users text-info" "description text-info" committer_count|intcomma 'devs' %}
-                </a>
-                {% big_text_box 'col-md-3' 'fas fa-bus' 'big-text text-danger' 'description text-danger' bus_factor|intcomma 'bus factor' %}
-                {% big_text_box 'col-md-3' 'fas fa-code-commit text-success' 'big-text text-success' 'description' commit_count|intcomma 'commits' %}
-                {% big_text_box 'col-md-3' 'fas fa-edit' 'big-text text-primary' 'description text-primary' file_changes_count|intcomma 'changes' %}
+    <div class="col-lg-12">
+        <section class="widget">
+            <header>
+                <h4>{% trans 'Stats' %} <small>of current <branch>  </branch></small></h4>
+                <div class="widget-controls">
+                    <a title="Options" href="#"><i class="glyphicon glyphicon-cog"></i></a>
+                    <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
+                    <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+                    <a data-widgster="close" title="Close" href="#"><i class="glyphicon glyphicon-remove"></i></a>
+                </div>
+            </header>
+            <div class="body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="row">
+                            <a  href=" url 'repo-devs-list' repo.id %}" >
+                            {% icon_box "col-md-3" "fas fa-users text-info" "description text-info" devs_count|intcomma 'devs' %}
+                            </a>
+                            {% big_text_box 'col-md-3' 'fas fa-bus' 'big-text text-danger' 'description text-danger' bus_factor|intcomma 'bus factor' %}
+                            {% big_text_box 'col-md-3' 'fas fa-stream text-success' 'big-text text-success' 'description' commit_count|intcomma 'commits' %}
+                            {% big_text_box 'col-md-3' 'fas fa-edit' 'big-text text-primary' 'description text-primary' file_changes_count|intcomma 'changes' %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            {% big_text_box 'col-md-4' 'fa fa-code' 'big-text text-warning' 'description text-warning' loc|intcomma 'lines of code'%}
+                            <a href="# url 'file-list-repo' repo.id %}">
+                                {% big_text_box 'col-md-4' 'fa fa-files-o' 'big-text text-white' 'description' file_count|intcomma 'files'%}
+                            </a>
+                            {% if file_count > 0 %}
+                                {% with hotspots_count|div:file_count|mul:100|floatformat:1 as p %}
+                                {% big_text_box 'col-md-4' 'fa fa-fire' 'big-text text-danger' 'description text-danger' p|add:"%" 'Red Hot Spots' %}
+                                {% endwith %}
+                            {% else %}
+                                {% big_text_box 'col-md-4' 'fa fa-fire' 'big-text text-danger' 'description text-danger' "0.0 %" 'Red Hot Spots' %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
+    </div>
 </div>

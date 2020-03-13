@@ -8,9 +8,14 @@
 {% load bootstrap4 %}
 {% block content_body %}
     <h2 class="page-title">
-        <i class="fas fa-archive"></i> {%trans 'Repository' %}: {{ repository.name}} <small>{% trans 'detail' %}</small>
+        <i class="fas fa-archive"></i> {%trans 'Repository' %}: {{ repository.name}}
+        &nbsp;
+        <small>
+             {% trans 'status:' %}&nbsp;<i class="{{ repository.status_icon }}"></i> {{ repository.get_status_display }}
+        </small>
     </h2>
     {% include 'repository/blocks/stats_widgets.html' %}
+    {% include 'repository/blocks/developers_of_branch.html' %}
 {% endblock %}
 {% block breadcrumb_path %}
     <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
@@ -19,6 +24,7 @@
 {% endblock %}
 
 {% block top_actions %}
+
     <li class="divider"></li>
     <li>
         <div class="top_action_button_div dropdown-toggle">

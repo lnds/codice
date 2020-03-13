@@ -32,6 +32,8 @@ def clone_remote_repository(owner_id: int, repo_id: int):
         repo.save()
 
         process_repo_objects(repo)
+        repo.status = Repository.Status.OK
+        repo.save()
 
         return "Repository {} cloned successfully".format(repo)
     except User.DoesNotExist:

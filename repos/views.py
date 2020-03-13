@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.db.transaction import on_commit
 from django.views.generic import ListView, CreateView, DetailView, DeleteView
@@ -64,6 +65,22 @@ class RepositoryCreate(RepositoryMixin, CanAdminReposMixin, CreateView):
 
 class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
     template_name = 'repository/detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        self.branch = self.object.find_branch(self.request.GET['filter'] if 'filter' in self.request.GET else None)
+        print("branch = {}".format(self.branch))
+        commit_set = self.repo.commit_set.filter(branch=self.branch)
+
+        context['commit_count'] = commit_set.count()
+
+        context['filter'] = self.branch.name if self.branch else None
+        context['branches_count'] = self.repo.branches_count()
+
+        context['devs_count'] = self.repo.devs_count_of_branch(self.branch)
+        context['devs'] = self.repo.get_developers_contribution(self.branch)
+        return context
 
 
 class RepositoryDelete(RepositoryMixin, CanAdminReposMixin, DeleteView):
