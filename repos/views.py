@@ -78,8 +78,10 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
         context['filter'] = self.branch.name if self.branch else None
         context['branches_count'] = self.repo.branches_count()
 
-        context['devs_count'] = self.repo.devs_count_of_branch(self.branch)
-        context['devs'] = self.repo.get_developers_contribution(self.branch)
+        devs= Paginator(self.repo.get_developers_contribution(self.branch), 10)
+        page = self.request.GET.get('page')
+        context['devs'] = devs.get_page(page)
+        context['devs_count'] = devs.count
         return context
 
 
