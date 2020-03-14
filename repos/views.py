@@ -2,11 +2,12 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count, Sum, Avg
 from django.db.transaction import on_commit
 from django.views.generic import ListView, CreateView, DetailView, DeleteView
 from django.utils.translation import gettext as _
 
+from files.models import File, FileChange
 from repos.models import Repository
 from repos.tasks import clone_remote_repository, remove_local_repository
 import logging
@@ -73,6 +74,15 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
         print("branch = {}".format(self.branch))
         commit_set = self.repo.commit_set.filter(branch=self.branch)
 
+        context['file_changes_count'] = FileChange.objects.filter(commit__in=commit_set.all()).count()
+
+        qs = File.objects.filter(repository=self.repo, branch=self.branch, is_code=True, exists=True) \
+            .aggregate(count=Count('id', distinct=True), loc=Sum('code'), avg=Avg('indent_complexity'))
+
+
+
+        context['file_count'] = qs['count'] or 0
+        context['loc'] = qs['loc'] or 0
         context['commit_count'] = commit_set.count()
 
         context['filter'] = self.branch.name if self.branch else None
