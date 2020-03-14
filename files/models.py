@@ -3,6 +3,7 @@ from django.db.models import Count, F
 from django.utils.functional import cached_property
 
 from commits.models import Commit
+from developers.models import Developer
 from repos.models import Repository, Branch
 
 
@@ -134,3 +135,10 @@ class FileChange(models.Model):
     class Meta:
         db_table = 'codice_filechange'
         unique_together = (('file', 'commit'),)
+
+
+class FileBlame(models.Model):
+    loc = models.IntegerField()
+    commit = models.ForeignKey(Commit, on_delete=models.CASCADE)
+    file = models.ForeignKey(File, on_delete=models.CASCADE)
+    author = models.ForeignKey(Developer, on_delete=models.CASCADE)

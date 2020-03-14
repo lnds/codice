@@ -22,3 +22,6 @@ class GitRepository(object):
 
     def get_commits(self, branch):
         return self.git_repo.iter_commits(branch)
+
+    def blame(self, rev, filename):
+        return self.git_repo.blame(rev, filename, incremental=False)

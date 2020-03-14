@@ -7,7 +7,7 @@ from pygount.analysis import SourceState
 from authentication.models import User
 from commits.models import Commit
 from developers.models import Developer
-from files.models import File, FilePath, FileChange
+from files.models import File, FilePath, FileChange, FileBlame
 from git_interface.gitobjects import GitRepository
 from repos.analytics.complexity import calculate_complexity_in
 from repos.models import Repository, Branch
@@ -49,15 +49,16 @@ class RepoAnalyzer(object):
         self.current_branch = self.repo.default_branch
 
     def process(self):
+        self.repo.status = Repository.Status.ANALYZING
+        self.repo.save()
         for branch in self.remote_branches_to_track:
-            self.process_branch(branch)
+            self.__process_branch(branch)
 
             if self.repo.default_branch == '':
                 self.repo.default_branch = branch
                 self.repo.save()
 
-
-    def process_branch(self, branch_name: str):
+    def __process_branch(self, branch_name: str):
         logger.info("CHECKOUT BRANCH {}".format(branch_name))
         if not self.git_repo.checkout(branch_name):
             return None
@@ -65,11 +66,10 @@ class RepoAnalyzer(object):
         branch, created = Branch.objects.get_or_create(name=branch_name, repository=self.repo)
         logger.info('BRANCH %s CREATED: %s', branch_name, created)
 
-        self.process_commits(branch)
-        self.process_changes(branch)
+        self.__process_commits(branch)
         return branch
 
-    def process_commits(self, branch: Branch):
+    def __process_commits(self, branch: Branch):
         commit_history = self.git_repo.get_commits(branch=branch.name)
 
         logger.info('BEGIN COMMIT HISTORY')
@@ -135,6 +135,8 @@ class RepoAnalyzer(object):
             file = self.__process_file(fn, branch)
             self.__process_file_change(commit, file, files[fn], git_commit)
             logger.info("data: {}".format(files[fn]))
+
+            self.__process_file_blame(fn, commit, file)
 
     def __process_file_change(self, commit:Commit, file: File, fc, git_commit):
         ins = int(fc['insertions'])
@@ -272,6 +274,8 @@ class RepoAnalyzer(object):
 
         return self.filepath_cache[cache_key]
 
-    def process_changes(self, branch):
-        pass
-
+    def __process_file_blame(self, filename, commit: Commit, file: File):
+        b = self.git_repo.blame(commit.hexsha, filename)
+        print("b is = {}".format(b[0][1]))
+        blame, created = FileBlame.objects.get_or_create(file=file, commit=commit, author=commit.author, loc=len(b[0][1]))
+        return blame

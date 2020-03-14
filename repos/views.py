@@ -79,8 +79,6 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
         qs = File.objects.filter(repository=self.repo, branch=self.branch, is_code=True, exists=True) \
             .aggregate(count=Count('id', distinct=True), loc=Sum('code'), avg=Avg('indent_complexity'))
 
-
-
         context['file_count'] = qs['count'] or 0
         context['loc'] = qs['loc'] or 0
         context['commit_count'] = commit_set.count()

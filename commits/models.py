@@ -27,3 +27,5 @@ class Commit(models.Model):
 
     def __str__(self):
         return "{} @ {}: {}".format(self.hexsha[-6:], self.date,  self.message[:20])
+
+
