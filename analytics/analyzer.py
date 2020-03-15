@@ -2,7 +2,6 @@ import traceback
 from pathlib import Path
 
 import pygount
-from django.db.models import Sum
 from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
 from authentication.models import User
@@ -10,7 +9,7 @@ from commits.models import Commit
 from developers.models import Developer, Blame
 from files.models import File, FilePath, FileChange, FileBlame
 from git_interface.gitobjects import GitRepository
-from repos.analytics.complexity import calculate_complexity_in
+from analytics.complexity import calculate_complexity_in
 from repos.models import Repository, Branch
 import logging
 
@@ -183,7 +182,8 @@ class RepoAnalyzer(object):
             )
         )
 
-    def __det_change_status(self, commit, parents):
+    @staticmethod
+    def __det_change_status(commit, parents):
         for parent in parents:
             for change in parent.diff(commit):
                 return change.change_type

@@ -7,8 +7,9 @@ from django.db.transaction import on_commit
 from django.views.generic import ListView, CreateView, DetailView, DeleteView
 from django.utils.translation import gettext as _
 
+from analytics.hotspots import count_hotspots
 from files.models import File, FileChange
-from repos.analytics.services import get_bus_factor_of
+from analytics.services import get_bus_factor_of
 from repos.models import Repository
 from repos.tasks import clone_remote_repository, remove_local_repository
 import logging
@@ -93,6 +94,8 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
         page = self.request.GET.get('page')
         context['devs'] = devs.get_page(page)
         context['devs_count'] = devs.count
+
+        context['hotspots_count'] = count_hotspots(self.repo, self.branch)
         return context
 
 

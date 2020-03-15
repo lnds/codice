@@ -6,7 +6,7 @@ from git import GitCommandError
 
 from authentication.models import User
 from git_interface.giturls import build_repo_url
-from repos.analytics.analyzer import process_repo_objects
+from analytics.analyzer import process_repo_objects
 from repos.models import Repository
 import git_interface.gitcmds as git
 
