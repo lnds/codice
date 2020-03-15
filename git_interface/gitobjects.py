@@ -24,7 +24,4 @@ class GitRepository(object):
         return self.git_repo.iter_commits(branch)
 
     def blame(self, rev, filename):
-        for b in self.git_repo.blame(rev, filename, incremental=False):
-            if b[0].hexsha == rev:
-                return b
-        return None
+        return self.git_repo.blame(rev, filename, incremental=False)

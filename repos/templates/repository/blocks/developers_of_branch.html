@@ -1,5 +1,6 @@
 {% load i18n %}
 {% load bootstrap4 %}
+{% load humanize %}
 <div class="row">
         <div class="col-md-12">
             <section class="widget">
@@ -16,6 +17,8 @@
                             <tr>
                                 <th>{%trans 'Author' %}</th>
                                 <th>{%trans 'Commits' %}</th>
+                                <th>{%trans 'Changes' %}</th>
+                                <th>{%trans 'Blame' %}</th>
                                 <th>{%trans 'Added' %}</th>
                                 <th>{%trans 'Deleted' %}</th>
                                 <th>{%trans 'Net' %}</th>
@@ -27,10 +30,12 @@
                             {% for d in devs %}
                                 <tr>
                                     <td>{{d.author__name}} &lt;{{ d.author__email }}&gt;</td>
-                                    <td class="text-right">{{d.commits}}</td>
-                                    <td class="text-right">{{d.added}}</td>
-                                    <td class="text-right">{{d.deleted}}</td>
-                                    <td class="text-right">{{d.net}}</td>
+                                    <td class="text-right">{{d.commits|intcomma}}</td>
+                                    <td class="text-right">{{d.changes|intcomma}}</td>
+                                    <td class="text-right">{{d.author__blame__loc|intcomma}}</td>
+                                    <td class="text-right">{{d.added|intcomma}}</td>
+                                    <td class="text-right">{{d.deleted|intcomma}}</td>
+                                    <td class="text-right">{{d.net|intcomma}}</td>
                                     <td class="text-left">{{d.min_date|timesince:d.max_date}}</td>
                                     <td class="text-left">{{d.max_date}}</td>
                                 </tr>

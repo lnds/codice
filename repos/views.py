@@ -8,6 +8,7 @@ from django.views.generic import ListView, CreateView, DetailView, DeleteView
 from django.utils.translation import gettext as _
 
 from files.models import File, FileChange
+from repos.analytics.services import get_bus_factor_of
 from repos.models import Repository
 from repos.tasks import clone_remote_repository, remove_local_repository
 import logging
@@ -82,6 +83,8 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
         context['file_count'] = qs['count'] or 0
         context['loc'] = qs['loc'] or 0
         context['commit_count'] = commit_set.count()
+
+        context['bus_factor'] = get_bus_factor_of(self.repo)
 
         context['filter'] = self.branch.name if self.branch else None
         context['branches_count'] = self.repo.branches_count()

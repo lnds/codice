@@ -1,9 +1,10 @@
 from django.core.validators import RegexValidator
 from django.db import models
-from django.db.models import Count, ExpressionWrapper, fields, Sum, Min, Max, F
+from django.db.models import Count, ExpressionWrapper, fields, Sum, Min, Max, F, OuterRef
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from codice import settings
+from tools.models import SQCount
 
 
 class Repository(models.Model):
@@ -87,17 +88,28 @@ class Repository(models.Model):
     def get_developers_contribution(self, branch):
         """Get developers contribution stats for this repo in given branch"""
         from commits.models import Commit
+        from files.models import FileChange
         duration = ExpressionWrapper(F('max_date') - F('min_date'), output_field=fields.DurationField())
-        return Commit.objects.filter(repository=self, branch=branch,
-                                     author__is_alias_of__isnull=True, author__enabled=True) \
-            .values('author', 'author__name', 'author__email') \
+        file_changes = FileChange.objects.filter(
+            repository=self, branch=branch,
+            commit__author=OuterRef("author")).order_by()
+        file_changes_count = file_changes.annotate(changes=Count('*')).values('changes')
+        q = Commit.objects.filter(repository=self, branch=branch,
+                                  author__is_alias_of__isnull=True, author__enabled=True,
+                                  author__blame__repository=self, author__blame__branch=branch) \
+            .values('author', 'author__name', 'author__email', 'author__blame__loc') \
             .annotate(added=Sum('insertions'),
                       deleted=Sum('deletions'),
                       net=Sum('net'),
                       commits=Count('id', distinct=True),
+                      changes=SQCount(file_changes_count),
                       min_date=Min('date'),
                       max_date=Max('date'),
-                      duration=duration).order_by('-commits')
+                      )\
+            .annotate(duration=duration) \
+            .order_by('-commits')
+        print("query = {}".format(q.query))
+        return q
 
 
 class Branch(models.Model):
@@ -107,4 +119,3 @@ class Branch(models.Model):
     class Meta:
         db_table = 'codice_branch'
         unique_together = (('name', 'repository'),)
-

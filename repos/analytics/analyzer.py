@@ -93,8 +93,16 @@ class RepoAnalyzer(object):
                 author=blame.author
             ).order_by("date")
 
-            file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits).aggregate(loc=Sum('loc'))
-            blame.loc = file_blames['loc']
+            file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits)
+            fd = dict()
+            for fb in file_blames:
+                if not fb.file in fd:
+                    fd[fb.file] = (fb.loc, fb.commit.date)
+                else:
+                    (loc, date) = fd[fb.file]
+                    if date < fb.commit.date:
+                        fd[fb.file] = (fb.loc, fb.commit.date)
+            blame.loc = sum([loc for (loc, d) in fd.values()    ])
             logger.info("blame.loc = {}".format(blame.loc))
             blame.save()
 
@@ -153,11 +161,10 @@ class RepoAnalyzer(object):
         return self.commit_cache[cache_key]
 
     def __process_files(self, commit, branch, files, git_commit):
-        logger.info("FILES")
         for fn in files.keys():
             file = self.__process_file(fn, branch)
             fc, created = self.__process_file_change(commit, file, files[fn], git_commit)
-            if file.exists and fc.change_type in ['A','M'] and not commit.is_merge:
+            if file.exists and fc.change_type in ['A','M'] or fc.change_type == '':
                 self.__process_file_blame(fn, commit, file)
 
     def __process_file_change(self, commit:Commit, file: File, fc, git_commit):
@@ -296,11 +303,13 @@ class RepoAnalyzer(object):
         return self.filepath_cache[cache_key]
 
     def __process_file_blame(self, filename, commit: Commit, file: File):
-        if not file.exists or commit.is_merge:
+        if not file.exists:
             return None
-        b = self.git_repo.blame(commit.hexsha, filename)
-        if b:
-            loc = len(b[1])
-            blame, created = FileBlame.objects.get_or_create(file=file, commit=commit, author=commit.author, loc=loc)
-            return blame
-        return None
+        blames = self.git_repo.blame(commit.hexsha, filename)
+        loc = 0
+        for b in blames:
+            if b[0].author.email == commit.author.email:
+                loc = loc + len(b[1])
+        blame, created = FileBlame.objects.get_or_create(file=file, commit=commit, author=commit.author, loc=loc)
+        return blame
+
