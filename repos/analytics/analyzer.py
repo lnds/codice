@@ -2,6 +2,7 @@ import traceback
 from pathlib import Path
 
 import pygount
+from django.db.models import Sum
 from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
 from authentication.models import User
@@ -92,20 +93,8 @@ class RepoAnalyzer(object):
                 author=blame.author
             ).order_by("date")
 
-            file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits)
-            fd = dict()
-            for fb in file_blames:
-                logger.info("fb.id = {}, fb.loc = {}, fb.filename={}, fb.date={}".format(fb.id, fb.loc, fb.file.filename, fb.commit.date))
-                if fb.file not in fd:
-                    fd[fb.file] = (fb.loc, fb.commit.date)
-                else:
-                    (loc, date) = fd[fb.file]
-                    logger.info("CMP date = {} fb.commit.date = {}".format(date, fb.commit.date))
-                    if date < fb.commit.date:
-                        fd[fb.file] = (fb.loc, fb.commit.date)
-                logger.info("fd[{}] = {}".format(fb.file, fd[fb.file]))
-            logger.info("locs = {}".format([loc for (loc,d) in fd.values()]))
-            blame.loc = sum([loc for (loc, d) in fd.values()])
+            file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits).aggregate(loc=Sum('loc'))
+            blame.loc = file_blames['loc']
             logger.info("blame.loc = {}".format(blame.loc))
             blame.save()
 
@@ -312,9 +301,6 @@ class RepoAnalyzer(object):
         b = self.git_repo.blame(commit.hexsha, filename)
         if b:
             loc = len(b[1])
-            if filename == "README.md":
-                logger.info("B ES: {}".format(b))
-                logger.info("loc es {}".format(loc))
             blame, created = FileBlame.objects.get_or_create(file=file, commit=commit, author=commit.author, loc=loc)
             return blame
         return None
