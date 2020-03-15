@@ -42,7 +42,7 @@ def clone_remote_repository(owner_id: int, repo_id: int):
         return "error cloning repository, repository_id {} not found".format(repo_id)
     except GitCommandError as cmd_err:
         repo = Repository.objects.get(pk=repo_id)
-        repo.status = Repository.ERROR
+        repo.status = Repository.Status.ERROR
         repo.save()
         return "git error: {}".format(cmd_err)
 

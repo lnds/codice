@@ -6,7 +6,7 @@ from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
 from authentication.models import User
 from commits.models import Commit
-from developers.models import Developer
+from developers.models import Developer, Blame
 from files.models import File, FilePath, FileChange, FileBlame
 from git_interface.gitobjects import GitRepository
 from repos.analytics.complexity import calculate_complexity_in
@@ -39,6 +39,7 @@ class RepoAnalyzer(object):
         self.git_repo = GitRepository(self.repo.base_directory)
         self.developer_cache = dict()
         self.commit_cache = dict()
+        self.blames_cache = dict()
 
         rbts = self.repo.branches_to_track.strip()
         if rbts == '':
@@ -67,6 +68,7 @@ class RepoAnalyzer(object):
         logger.info('BRANCH %s CREATED: %s', branch_name, created)
 
         self.__process_commits(branch)
+        self.__process_blames(branch)
         return branch
 
     def __process_commits(self, branch: Branch):
@@ -74,12 +76,38 @@ class RepoAnalyzer(object):
 
         logger.info('BEGIN COMMIT HISTORY')
         for commit in commit_history:
-            logger.info("PROCESSING COMMIT HISTORY %s @ %s", commit.hexsha, commit.authored_datetime)
             author_email = commit.author.email
             author = self.__get_author(author_email, commit.author.name)
             self.__process_commit(commit, author, branch)
+            self.__get_or_create_blame(author, branch)
 
         logger.info("END COMMIT HISTORY")
+
+    def __process_blames(self, branch: Branch):
+        blames = Blame.objects.filter(repository=self.repo, branch=branch)
+        for blame in blames:
+            commits = Commit.objects.filter(
+                branch=branch,
+                repository=self.repo,
+                author=blame.author
+            ).order_by("date")
+
+            file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits)
+            fd = dict()
+            for fb in file_blames:
+                logger.info("fb.id = {}, fb.loc = {}, fb.filename={}, fb.date={}".format(fb.id, fb.loc, fb.file.filename, fb.commit.date))
+                if fb.file not in fd:
+                    fd[fb.file] = (fb.loc, fb.commit.date)
+                else:
+                    (loc, date) = fd[fb.file]
+                    logger.info("CMP date = {} fb.commit.date = {}".format(date, fb.commit.date))
+                    if date < fb.commit.date:
+                        fd[fb.file] = (fb.loc, fb.commit.date)
+                logger.info("fd[{}] = {}".format(fb.file, fd[fb.file]))
+            logger.info("locs = {}".format([loc for (loc,d) in fd.values()]))
+            blame.loc = sum([loc for (loc, d) in fd.values()])
+            logger.info("blame.loc = {}".format(blame.loc))
+            blame.save()
 
     def __get_author(self, email, name):
         cache_key = (email, self.owner)
@@ -89,6 +117,13 @@ class RepoAnalyzer(object):
             dev.repos.add(self.repo)
             return dev
         return self.developer_cache[cache_key]
+
+    def __get_or_create_blame(self, author: Developer, branch: Branch):
+        if author not in self.blames_cache:
+            blame, created = Blame.objects.get_or_create(author=author, repository=self.repo, branch=branch,
+                                                         defaults={"loc": 0})
+            self.blames_cache[author] = blame
+        return self.blames_cache[author]
 
     def __process_commit(self, git_commit, author, branch):
         hexsha = str(git_commit.hexsha)
@@ -131,18 +166,15 @@ class RepoAnalyzer(object):
     def __process_files(self, commit, branch, files, git_commit):
         logger.info("FILES")
         for fn in files.keys():
-            logger.info("file: {}".format(fn))
             file = self.__process_file(fn, branch)
-            self.__process_file_change(commit, file, files[fn], git_commit)
-            logger.info("data: {}".format(files[fn]))
-
-            self.__process_file_blame(fn, commit, file)
+            fc, created = self.__process_file_change(commit, file, files[fn], git_commit)
+            if file.exists and fc.change_type in ['A','M'] and not commit.is_merge:
+                self.__process_file_blame(fn, commit, file)
 
     def __process_file_change(self, commit:Commit, file: File, fc, git_commit):
         ins = int(fc['insertions'])
         dels = int(fc['deletions'])
         change_type = self.__det_change_status(git_commit, git_commit.parents)
-        print("change type = {}, for file: {}".format(change_type, file))
         return FileChange.objects.get_or_create(
             file=file,
             commit=commit,
@@ -275,7 +307,14 @@ class RepoAnalyzer(object):
         return self.filepath_cache[cache_key]
 
     def __process_file_blame(self, filename, commit: Commit, file: File):
+        if not file.exists or commit.is_merge:
+            return None
         b = self.git_repo.blame(commit.hexsha, filename)
-        print("b is = {}".format(b[0][1]))
-        blame, created = FileBlame.objects.get_or_create(file=file, commit=commit, author=commit.author, loc=len(b[0][1]))
-        return blame
+        if b:
+            loc = len(b[1])
+            if filename == "README.md":
+                logger.info("B ES: {}".format(b))
+                logger.info("loc es {}".format(loc))
+            blame, created = FileBlame.objects.get_or_create(file=file, commit=commit, author=commit.author, loc=loc)
+            return blame
+        return None

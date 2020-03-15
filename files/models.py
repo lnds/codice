@@ -49,6 +49,9 @@ class File(models.Model):
     repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
 
+    class Meta:
+        db_table = 'codice_file'
+
     @cached_property
     def commits(self):
         return Commit.objects.filter(filechange__file=self).all()
@@ -142,3 +145,7 @@ class FileBlame(models.Model):
     commit = models.ForeignKey(Commit, on_delete=models.CASCADE)
     file = models.ForeignKey(File, on_delete=models.CASCADE)
     author = models.ForeignKey(Developer, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'codice_fileblame'
+        unique_together = (('file', 'commit'),)

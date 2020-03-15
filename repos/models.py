@@ -3,7 +3,6 @@ from django.db import models
 from django.db.models import Count, ExpressionWrapper, fields, Sum, Min, Max, F
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-
 from codice import settings
 
 
@@ -108,3 +107,4 @@ class Branch(models.Model):
     class Meta:
         db_table = 'codice_branch'
         unique_together = (('name', 'repository'),)
+
