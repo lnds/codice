@@ -1,8 +1,10 @@
 {% load i18n %}
 {% load bootstrap4 %}
 {% load humanize %}
+{% load gravatar %}
+{% load static %}
 <div class="row">
-        <div class="col-md-12">
+        <div class="col-xs-12 col-sm-10 col-md-8 col-lg-8">
             <section class="widget">
                 <header>
                     <h4>{% trans 'Developers' %}</h4>
@@ -11,7 +13,8 @@
                         <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
                     </div>
                 </header>
-                <div class="widget-table-overflow">
+                <div class="body">
+                    <div class="widget-table-overflow">
                     <table class="table table m-t-30 table-hover nowrap">
                         <thead>
                             <tr>
@@ -29,7 +32,10 @@
                         <tbody>
                             {% for d in devs %}
                                 <tr>
-                                    <td>{{d.author__name}} &lt;{{ d.author__email }}&gt;</td>
+                                    <td>
+                                        <img class="img-circle" src="{% gravatar_url d.author__email 16 %}"
+                                             width="16" onerror="this.src='{% static 'img/1.png' %}'" alt="user">
+                                        {{d.author__name}} &lt;{{ d.author__email }}&gt;</td>
                                     <td class="text-right">{{d.commits|intcomma}}</td>
                                     <td class="text-right">{{d.changes|intcomma}}</td>
                                     <td class="text-right">{{d.author__blame__loc|intcomma}}</td>
@@ -48,6 +54,42 @@
                         {% endif %}
                     </div>
                 </div>
+                </div>
             </section>
+        </div>
+        <div class="col-xs-12 col-sm-2 col-md-4 col-lg-4">
+            <div class="widget">
+                <header>
+                    <h4>{% trans 'Languages' %}</h4>
+                    <div class="widget-controls">
+                        <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
+                        <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+                    </div>
+                </header>
+                <div class="body">
+                    <table class="table table m-t-30 table-hover nowrap">
+                        <thead>
+                            <tr>
+                                <th>{%trans 'Lang' %}</th>
+                                <th>{%trans 'Files' %}</th>
+                                <th>{%trans 'Code' %}</th>
+                                <th>{%trans 'Comment' %}</th>
+                                <th>{%trans 'Blank' %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for l in languages %}
+                                <tr>
+                                    <td>{{l.language}}</td>
+                                    <td>{{l.files|intcomma}}</td>
+                                    <td  >{{l.code|intcomma}}</td>
+                                    <td>{{l.comment|intcomma}}</td>
+                                    <td>{{l.blank|intcomma}}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 </div>

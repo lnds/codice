@@ -24,4 +24,7 @@ class GitRepository(object):
         return self.git_repo.iter_commits(branch)
 
     def blame(self, rev, filename):
-        return self.git_repo.blame(rev, filename, incremental=False)
+        try:
+            return self.git_repo.blame(rev, filename, incremental=False)
+        except GitCommandError:
+            return None

@@ -30,14 +30,18 @@
 {% block table_body %}
 {% for repo in repo_list %}
     <tr>
-        <td><i class="{{ repo.status_icon }} {{ repo.status_css }}"></i> {{ repo.get_status_display }}</td>
+        <td>
+            <span class="badge  {{ repo.status_badge_class }}">
+            <i class="{{ repo.status_icon }} "></i> {{ repo.get_status_display }}</td>
+
+            </span>
         <td class="text-align-left">
                 <a href="{% url 'repository-detail' repo.id %}">
                 {{ repo.name }}
                 </a>
         </td>
         <td class="text-align-left">
-            <a href="{{ repo.url }}"  target="_blank">
+            <a href="{{ repo.url }}" target="_blank">
             {{ repo.url }}
             </a>
         </td>

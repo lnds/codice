@@ -50,6 +50,15 @@ class Repository(models.Model):
                   'fas fa-check-circle']
         return result[self.status]
 
+    def status_badge_class(self):
+        result = ['badge-secondary', 'badge-danger', 'badge-light', 'badge-secondary', 'badge-warning',
+                  'badge-success']
+        return result[self.status]
+
+    def status_css(self):
+        result = ['text-warning', 'text-danger', 'text-info', 'text-secondary', 'text-warning',
+                  'text-success']
+        return result[self.status]
     def commits_count(self):
         return self.commit_set.filter(branch=self.get_default_branch()).count()
 
@@ -67,8 +76,7 @@ class Repository(models.Model):
         return self.branch_set.count()
 
     def get_default_branch(self):
-        if self.status != Repository.Status.OK:
-            return None
+
         if self.default_branch > '':
             try:
                 return self.branch_set.get(name=self.default_branch)
@@ -108,7 +116,6 @@ class Repository(models.Model):
                       )\
             .annotate(duration=duration) \
             .order_by('-commits')
-        print("query = {}".format(q.query))
         return q
 
 

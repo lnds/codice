@@ -6,7 +6,13 @@
     <div class="col-lg-12">
         <section class="widget">
             <header>
-                <h4>{% trans 'Stats' %} <small>of current <branch>  </branch></small></h4>
+                <h4>{% trans 'Status:' %}
+                <small>
+            <span class="badge {{ repository.status_badge_class }}">
+             <i class="{{ repository.status_icon }}"></i> {{ repository.get_status_display }}
+            </span>
+        </small>
+                </h4>
                 <div class="widget-controls">
                     <a title="Options" href="#"><i class="glyphicon glyphicon-cog"></i></a>
                     <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
@@ -15,6 +21,15 @@
                 </div>
             </header>
             <div class="body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <address>
+                            <strong>{% trans 'Origin:' %}</strong>&nbsp;
+                            <a href="{{ repository.url }}" target="_blank">{{ repository.url }}</a>
+
+                        </address>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="row">

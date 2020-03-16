@@ -55,11 +55,12 @@ class RepoAnalyzer(object):
         self.repo.status = Repository.Status.ANALYZING
         self.repo.save()
         for branch in self.remote_branches_to_track:
-            self.__process_branch(branch)
-
             if self.repo.default_branch == '':
                 self.repo.default_branch = branch
                 self.repo.save()
+
+            self.__process_branch(branch)
+
 
     def __process_branch(self, branch_name: str):
         logger.info("CHECKOUT BRANCH {}".format(branch_name))
@@ -204,7 +205,6 @@ class RepoAnalyzer(object):
                     if date < fb.commit.date:
                         fd[fb.file] = (fb.loc, fb.commit.date)
             blame.loc = sum([loc for (loc, d) in fd.values()    ])
-            logger.info("blame.loc = {}".format(blame.loc))
             blame.save()
 
     def __get_author(self, email, name):
@@ -410,6 +410,8 @@ class RepoAnalyzer(object):
         if not file.exists:
             return None
         blames = self.git_repo.blame(commit.hexsha, filename)
+        if not blames:
+            return None
         loc = 0
         for b in blames:
             if b[0].author.email == commit.author.email:
