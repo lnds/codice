@@ -149,3 +149,15 @@ class FileBlame(models.Model):
     class Meta:
         db_table = 'codice_fileblame'
         unique_together = (('file', 'commit'),)
+
+
+class FileKnowledge(models.Model):
+
+    class Meta:
+        db_table = 'codice_fileknowledge'
+
+    added = models.IntegerField()
+    deleted = models.IntegerField()
+    knowledge = models.FloatField()
+    file = models.ForeignKey(File, on_delete=models.CASCADE)
+    author = models.ForeignKey(Developer, on_delete=models.CASCADE)

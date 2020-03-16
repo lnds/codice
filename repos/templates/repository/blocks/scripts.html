@@ -1,0 +1,46 @@
+{% load static %}
+<script src="//d3plus.org/js/d3.js"></script>
+<script src="//d3plus.org/js/d3plus.js"></script>
+<script>
+var data = [
+    {%for k in knowledge%}
+        {id:"{{k.author__name}}", value: {{k.knowledge}} },
+    {%endfor%}
+];
+$("#kmap").height($("#hotspots-chart").width()/2);
+
+new d3plus.viz()
+    .container("#kmap")
+    .data(data)
+    .type("tree_map")
+     .id("id")
+     .size("value")
+    .labels({"align": "left", "valign": "top"})
+     .draw();
+
+</script>
+<script>
+var cdata = [
+    {%for c in code%}
+        {language:"{{c.language}}", path:"{{c.path__path}}", file:"{{c.name}}", value: {{c.code}} },
+    {%endfor%}
+];
+$("#cmap").height($("#hotspots-chart").width()/2);
+new d3plus.viz()
+    .container("#cmap")
+    .data(cdata)
+    .type("tree_map")
+    .id(["language", "path", "file"])
+    .size("value")
+    .labels({"align": "left", "valign": "top"})
+    .draw();
+
+</script>
+
+<script>
+$("#hotspots-chart").height($("#cmap").height()+$("#kmap").height()+94);
+var branch_id = '{{ branch_id }}/';
+</script>
+
+<script src="{% static 'lib/d3/d3.js' %}"></script>
+<script src="{% static 'graphs/hotspots.js' %}"></script>

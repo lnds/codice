@@ -1,6 +1,6 @@
-from django.db.models import Sum
-
+from django.db.models import Sum, Count
 from developers.models import Blame
+from files.models import File
 
 
 def top_committers_of(repo, branch):
@@ -20,6 +20,7 @@ def top_committers_of(repo, branch):
                                 'ownership': stat['loc'] / total_loc * 100.0 if total_loc > 0 else 0.0})
     return committer_stats
 
+
 def get_bus_factor_of(repo):
     branch = repo.get_default_branch()
     committers = top_committers_of(repo, branch)
@@ -30,3 +31,11 @@ def get_bus_factor_of(repo):
             acum += c['ownership']
             bus_factor += 1
     return bus_factor
+
+
+def get_lang_participation_for_repo(repo, branch):
+    return File.objects.filter(repository=repo, branch=branch, exists=True).values('language')\
+        .annotate(files=Count('id', distinct=True),
+                  code=Sum('code'),
+                  comment=Sum('doc'),
+                  blank=Sum('blanks')).filter(code__gt=0).order_by('-files')

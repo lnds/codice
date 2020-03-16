@@ -18,7 +18,8 @@ def get_hotspots(repo: Repository, branch: Branch):
     mc = max_changes(repo, branch)
     return File.objects.filter(repository=repo, branch=branch, is_code=True).values('id', 'filename') \
         .annotate(changes=Count('filechange__id', distinct=True),
-                  percent=(F('changes')*Value(100.0))/Value(mc)).filter(percent__gt=hotspot_threshold).order_by('-changes')
+                  percent=(F('changes')*Value(100.0))/Value(mc))\
+        .filter(percent__gt=hotspot_threshold).order_by('-changes')
 
 
 def count_hotspots(repo: Repository, branch: Branch):

@@ -1,13 +1,15 @@
 import traceback
+from collections import defaultdict
 from pathlib import Path
-
+import pandas as pd
 import pygount
+from django.db.models import Max, F
 from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
 from authentication.models import User
 from commits.models import Commit
 from developers.models import Developer, Blame
-from files.models import File, FilePath, FileChange, FileBlame
+from files.models import File, FilePath, FileChange, FileBlame, FileKnowledge
 from git_interface.gitobjects import GitRepository
 from analytics.complexity import calculate_complexity_in
 from repos.models import Repository, Branch
@@ -68,6 +70,7 @@ class RepoAnalyzer(object):
         logger.info('BRANCH %s CREATED: %s', branch_name, created)
 
         self.__process_commits(branch)
+        self.__process_fileknowledge(branch)
         self.__process_blames(branch)
         return branch
 
@@ -80,8 +83,107 @@ class RepoAnalyzer(object):
             author = self.__get_author(author_email, commit.author.name)
             self.__process_commit(commit, author, branch)
             self.__get_or_create_blame(author, branch)
+            self.__process_files_hotspot_weight(branch)
 
         logger.info("END COMMIT HISTORY")
+
+    def __process_fileknowledge(self, branch: Branch):
+        index = list(File.objects.filter(repository=self.repo, branch=branch).values_list('id', flat=True))
+        authors_id = set(Commit.objects.order_by('author').values_list('author', flat=True).distinct())
+        df = pd.DataFrame(0, index=index, columns=authors_id)
+
+        file_knowledge_dict = dict()
+        sum_file_knowledge_dict = defaultdict(int)
+
+        file_owners = dict()
+        for c in Commit.objects.filter(branch=branch, repository=self.repo).select_related("author").order_by("date"):
+            if c.is_merge:
+                continue
+            author = c.author
+
+            add_others = 0
+            add_self = 0
+            del_self = 0
+            del_others = 0
+
+            for fc in c.filechange_set.select_related("file").all():
+                if fc.change_type == 'D' or not fc.file.exists:
+                    continue
+                sum_file_knowledge_dict[fc.file.id] += (fc.insertions + fc.deletions)
+                k_index = (fc.file_id, author.id)
+
+                if k_index in file_knowledge_dict:
+                    fk = file_knowledge_dict[k_index]
+                    fk.added += fc.insertions
+                    fk.deleted += fc.deletions
+                else:
+                    fk, created = FileKnowledge.objects.get_or_create(
+                        author=author,
+                        file=fc.file,
+                        defaults=dict(
+                            added=fc.insertions,
+                            deleted=fc.deletions,
+                            knowledge=0
+                        )
+                    )
+                    file_knowledge_dict[k_index] = fk
+
+                if fc.file.id in file_owners:
+                    file_owner = file_owners[fc.file.id]
+                else:
+                    file_owner = author.id
+                if author.id == file_owner:
+                    add_self += fc.insertions
+                    del_self += fc.deletions
+                else:
+                    add_others += fc.insertions
+                    del_others += fc.deletions
+
+                if author.id == file_owner:
+                    add_self += fc.insertions
+                    del_self += fc.deletions
+                else:
+                    add_others += fc.insertions
+                    del_others += fc.deletions
+
+                val = df.at[fc.file.id, author.id]
+                df.at[fc.file.id, author.id] = val + fc.insertions
+
+                deletions = fc.deletions
+                r = df.loc[fc.file.id]
+
+                while deletions > 0:
+                    imax = r.idxmax(axis=1)
+                    v = df.at[fc.file.id, imax]
+                    if v >= deletions:
+                        df.at[fc.file.id, imax] = v - deletions
+                        deletions = 0
+                    else:
+                        if v <= 0:
+                            break
+                        deletions -= v
+                        df.at[fc.file.id, imax] = 0
+
+                imax = r.idxmax(axis=1)
+                if df.at[fc.file.id, imax] > 0:
+                    file_owners[fc.file.id] = imax
+
+        logger.info("FILE KNOWLEDGE POST PROCESSING")
+        # adjust knowledge factor
+        for fk in file_knowledge_dict.values():
+            k_total = sum_file_knowledge_dict[fk.file_id]
+            fk.knowledge = min(1.0, (fk.added + fk.deleted) / k_total if k_total else 0.0)
+            fk.save()
+
+        logger.info("FILE OWNERS")
+        for file in File.objects.filter(repository=self.repo, branch=branch):
+            file.coupled_files = file.calc_temporal_coupling(file.commits)
+            file.soc = file.calc_soc(file.commits)
+
+            if file.id in file_owners:
+                file.knowledge_owner_id = file_owners[file.id]
+
+            file.save()
 
     def __process_blames(self, branch: Branch):
         blames = Blame.objects.filter(repository=self.repo, branch=branch)
@@ -165,6 +267,8 @@ class RepoAnalyzer(object):
             fc, created = self.__process_file_change(commit, file, files[fn], git_commit)
             if file.exists and fc.change_type in ['A','M'] or fc.change_type == '':
                 self.__process_file_blame(fn, commit, file)
+            file.changes += 1
+            file.save(update_fields=["changes"])
 
     def __process_file_change(self, commit:Commit, file: File, fc, git_commit):
         ins = int(fc['insertions'])
@@ -313,3 +417,12 @@ class RepoAnalyzer(object):
         blame, created = FileBlame.objects.get_or_create(file=file, commit=commit, author=commit.author, loc=loc)
         return blame
 
+    def __process_files_hotspot_weight(self, branch: Branch):
+        max_file_changes = File.objects.filter(repository=self.repo, branch=branch)\
+                            .aggregate(max=Max('changes'))['max'] or 1
+        File.objects.filter(
+            repository=self.repo,
+            branch=branch
+        ).update(
+            hotspot_weight=F('changes') / float(max_file_changes)
+        )

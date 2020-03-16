@@ -9,7 +9,7 @@ from tools.models import SQCount
 
 class Repository(models.Model):
 
-    git_url_validator = RegexValidator(r'((git|ssh|http(s)?)|(git@[\w\.]+))(:(//)?)([\w\.@\:/\-~]+)(\.git)(/)?',
+    git_url_validator = RegexValidator(r'((git|ssh|http(s)?)|(git@[\w\.]+)|file)(:(//)?)([\w\.@\:/\-~]+)(\.git)(/)?',
                                        _("Invalid git url"))
 
     class Status(models.IntegerChoices):
