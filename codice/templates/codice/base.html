@@ -6,6 +6,10 @@
 CODICE
 {% endblock title %}
 {% endblock bootstrap4_title %}
+{% block bootstrap4_extra_head %}
+    {% block additional_head %}
+    {% endblock additional_head %}
+{% endblock %}
 
 {% block bootstrap4_before_content%}
 <div class="logo">
@@ -23,3 +27,9 @@ CODICE
 {% endblock content %}
 
 {% endblock %}
+
+{% block bootstrap4_extra_script %}
+{% block additional_javascript %}
+{% endblock additional_javascript %}
+{% endblock %}
+

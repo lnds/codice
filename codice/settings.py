@@ -52,6 +52,9 @@ LOCAL_APPS = [
     'authentication',
     'dashboard',
     'repos',
+    'commits',
+    'developers',
+    'files',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -204,4 +207,8 @@ LOGIN_REDIRECT_URL = 'dashboard'
 
 AUTH_USER_MODEL = 'authentication.User'
 
+
+### Codice Params
+
+CODICE_HOT_SPOTS_THRESHOLD = 30
 CODICE_VERSION = "0.1.0"
