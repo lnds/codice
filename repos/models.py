@@ -7,6 +7,21 @@ from codice import settings
 from tools.models import SQCount
 
 
+def get_default_branches_for_repos(repos):
+    result = []
+    for repo in repos:
+        r = None
+        if repo.default_branch > '':
+            try:
+                r = repo.branch_set.get(name=repo.default_branch)
+            except Repository.DoesNotExist:
+                r = None
+        if r is None:
+            r = repo.branch_set.first()
+        result.append(r)
+    return result
+
+
 class Repository(models.Model):
 
     git_url_validator = RegexValidator(r'((git|ssh|http(s)?)|(git@[\w\.]+)|file)(:(//)?)([\w\.@\:/\-~]+)(\.git)(/)?',

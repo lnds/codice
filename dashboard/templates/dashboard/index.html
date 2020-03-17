@@ -32,7 +32,36 @@
                             {% icon_box 'col-md-3' 'fas fa-archive text-warning' 'text-warning' repo_count|intcomma 'repositories' %}
                         {% endif %}
                     </a>
+                    <a href="{% url 'files' %}">
+                        {% if file_count == 1 %}
+                            {% icon_box 'col-md-3' 'fas fa-file-code text-gray-lighter' 'text-gray-lighter' file_count|intcomma 'file' %}
+                        {% else %}
+                            {% icon_box 'col-md-3' 'fas fa-file-code text-gray-lighter' 'text-gray-lighter' file_count|intcomma 'files' %}
+                        {% endif %}
+                    </a>
+                    <a href="{% url 'devs' %}">
+                        {% if dev_count == 1 %}
+                            {% icon_box 'col-md-3' 'fas fa-users text-info' 'text-info' dev_count|intcomma 'dev' %}
+                        {% else %}
+                            {% icon_box 'col-md-3' 'fas fa-users text-info' 'text-info' dev_count|intcomma 'devs' %}
+                        {% endif %}
+                    </a>
+                    <a href="{% url 'commits' %}">
+                        {% if commit_count == 1 %}
+                            {% icon_box 'col-md-3' 'far fa-dot-circle text-success' 'text-success' commit_count 'commit' %}
+                        {% else %}
+                            {% icon_box 'col-md-3' 'far fa-dot-circle text-success' 'text-success' commit_count|intcomma 'commits' %}
+                        {% endif %}
+                    </a>
                 </div>
+            </div>
+            <div class="col-md-6">
+                    <div class="row">
+                        {% icon_box 'col-md-3' 'far fa-calendar-alt text-warning' 'text-warning' min_date|timesince:max_date '' %}
+                        {% big_text_box 'col-md-3' '' 'text-white' 'description' commits_in_last_week 'commits in last week' %}
+                        {% big_text_box 'col-md-3' '' 'text-white' 'description' net_lines_in_last_week 'net loc in last week' %}
+                         {% icon_box 'col-md-3' 'fas fa-chart-bar text-success' 'text-success' 'devs board' ''%}
+                    </div>
             </div>
           </div>
     {% endif %}
