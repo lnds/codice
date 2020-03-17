@@ -1,13 +1,17 @@
 import traceback
 from collections import defaultdict
 from pathlib import Path
+
+import numpy
 import pandas as pd
 import pygount
 from django.db.models import Max, F
 from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
+
+from analytics.blames import calc_total_blame, update_blame_object
 from authentication.models import User
-from commits.models import Commit
+from commits.models import Commit, CommitBlame
 from developers.models import Developer, Blame
 from files.models import File, FilePath, FileChange, FileBlame, FileKnowledge
 from git_interface.gitobjects import GitRepository
@@ -23,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 def language_is_code(lang):
     return lang not in ('__unknown__', '__binary__', '__error__', '__generated__', '__empty__')
+
 
 def process_repo_objects(repo: Repository):
     logger.info("processing repo: {}".format(repo))
@@ -61,6 +66,8 @@ class RepoAnalyzer(object):
 
             self.__process_branch(branch)
 
+        if self.repo.default_branch > '':
+            self.git_repo.checkout(self.repo.default_branch)
 
     def __process_branch(self, branch_name: str):
         logger.info("CHECKOUT BRANCH {}".format(branch_name))
@@ -169,6 +176,19 @@ class RepoAnalyzer(object):
                 if df.at[fc.file.id, imax] > 0:
                     file_owners[fc.file.id] = imax
 
+            CommitBlame.objects.get_or_create(
+                commit=c,
+                defaults=dict(
+                    loc=df[author.id].sum(),
+                    add_others=add_others,
+                    add_self=add_self,
+                    del_others=del_others,
+                    del_self=del_self,
+                    author=author,
+                    date=c.date
+                )
+            )
+
         logger.info("FILE KNOWLEDGE POST PROCESSING")
         # adjust knowledge factor
         for fk in file_knowledge_dict.values():
@@ -204,8 +224,17 @@ class RepoAnalyzer(object):
                     (loc, date) = fd[fb.file]
                     if date < fb.commit.date:
                         fd[fb.file] = (fb.loc, fb.commit.date)
-            blame.loc = sum([loc for (loc, d) in fd.values()    ])
+            blame.loc = sum([loc for (loc, d) in fd.values()])
             blame.save()
+
+        (total_blame, total_insertions, total_deletions) = calc_total_blame(self.repo, branch)
+        for blame in blames:
+            commits = Commit.objects.filter(
+                branch=branch,
+                repository=self.repo,
+                author=blame.author
+            ).order_by("date")
+            update_blame_object(blame, blame.author, commits, total_blame, total_insertions, total_deletions)
 
     def __get_author(self, email, name):
         cache_key = (email, self.owner)

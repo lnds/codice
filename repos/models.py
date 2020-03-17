@@ -59,6 +59,7 @@ class Repository(models.Model):
         result = ['text-warning', 'text-danger', 'text-info', 'text-secondary', 'text-warning',
                   'text-success']
         return result[self.status]
+
     def commits_count(self):
         return self.commit_set.filter(branch=self.get_default_branch()).count()
 
@@ -72,6 +73,9 @@ class Repository(models.Model):
             .aggregate(devs=Count('author__id', distinct=True))
         return result['devs']
 
+    def files_count(self):
+        return self.file_set.filter(branch=self.get_default_branch(), is_code=True, exists=True).count()
+    
     def branches_count(self):
         return self.branch_set.count()
 

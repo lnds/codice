@@ -29,3 +29,47 @@ class Commit(models.Model):
         return "{} @ {}: {}".format(self.hexsha[-6:], self.date,  self.message[:20])
 
 
+class CommitStatistic(models.Model):
+    date = models.DateTimeField()
+    commit = models.OneToOneField(Commit, on_delete=models.CASCADE, primary_key=True)
+    blame_loc = models.IntegerField()
+    impact = models.FloatField(default=0.0)
+    log_impact = models.FloatField(default=0.0)
+    raw_churn = models.FloatField(default=0.0)
+    self_churn = models.FloatField(default=0.0)
+    churn = models.FloatField(default=0.0)
+    raw_throughput = models.FloatField(default=0.0)
+    self_throughput = models.FloatField(default=0.0)
+    throughput = models.FloatField(default=0.0)
+    ownership = models.FloatField(default=0.0)
+    acum_lines = models.IntegerField()
+    acum_insertions = models.IntegerField()
+    acum_deletions = models.IntegerField()
+    net_result = models.IntegerField()
+    changes = models.IntegerField()
+    add_self = models.IntegerField(default=0)
+    del_self = models.IntegerField(default=0)
+    add_others = models.IntegerField(default=0)
+    del_others = models.IntegerField(default=0)
+    work_self = models.FloatField(default=0.0)
+    work_others = models.FloatField(default=0.0)
+
+    class Meta:
+        db_table = 'codice_commitstatistic'
+
+    def author(self):
+        return self.commit.author
+
+
+class CommitBlame(models.Model):
+    loc = models.IntegerField()
+    add_self = models.IntegerField(default=0)
+    add_others = models.IntegerField(default=0)
+    del_self = models.IntegerField(default=0)
+    del_others = models.IntegerField(default=0)
+    date = models.DateTimeField()
+    author = models.ForeignKey(Developer, on_delete=models.CASCADE)
+    commit = models.ForeignKey(Commit, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'codice_commitblame'
