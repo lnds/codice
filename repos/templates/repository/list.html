@@ -1,0 +1,130 @@
+{% extends 'codice/base_table.html' %}
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+{% load bootstrap4 %}
+{% block empty_table %}
+    <h2>{% trans 'No repositories found' %}</h2>
+    <p class="lead">{% trans 'You have not created any repository yet' %}</p>
+    <p class="lead">
+        <a class="btn btn-primary btn-lg" href="{% url 'repository-add' %}" role="button">
+            <i class="fa fa-plus-circle"></i> <small>{% trans 'Add Repository' %}</small>
+        </a>
+    </p>
+{% endblock empty_table %}
+{% block table_title %}
+    <i class="fas fa-archive "></i>
+    {% trans 'Repos' %}
+{% endblock %}
+{% block table_head %}
+    <th>{% trans 'STATUS' %}</th>
+    <th>{% trans 'NAME' %}</th>
+    <th>{% trans 'URL' %}</th>
+    <th class="text-align-center">{% trans 'BRANCHES' %}</th>
+    <th class="text-align-center">{% trans 'FILES' %}</th>
+    <th class="text-align-center">{% trans 'COMMITS' %}</th>
+    <th class="text-align-center">{% trans 'CHANGES' %}</th>
+    <th class="text-align-center">{% trans 'COMMITTERS' %}</th>
+    <th class="text-align-center">{% trans 'DASHBOARD' %}</th>
+{% endblock %}
+{% block table_body %}
+{% for repo in repo_list %}
+    <tr>
+        <td>
+            <span class="badge  {{ repo.status_badge_class }}">
+            <i class="{{ repo.status_icon }} "></i> {{ repo.get_status_display }}</td>
+
+            </span>
+        <td class="text-align-left">
+                <a href="{% url 'repository-detail' repo.id %}">
+                {{ repo.name }}
+                </a>
+        </td>
+        <td class="text-align-left">
+            <a href="{{ repo.url }}" target="_blank">
+            {{ repo.url }}
+            </a>
+        </td>
+        <td class="text-align-right">
+            <span class="btn btn-block btn-default">
+            {{ repo.branches_count|intcomma }}
+            </span>
+        </td>
+        <td class="text-align-right">
+            {% if repo.ready %}
+            <a href="#% url 'file-list-repo' repo.id %}?from=repos" class="btn btn-block btn-primary">
+                {{ repo.files_count|intcomma }}
+            </a>
+            {% else %}
+                {{ repo.files_count|intcomma }}
+            {% endif %}
+        </td>
+        <td class="text-align-right">
+            {% if repo.ready %}
+                <a href="#" class="btn btn-block btn-success">
+                    {{ repo.commits_count|intcomma }}
+                </a>
+                {% else %}
+                {{ repo.commits_count|intcomma }}
+            {% endif %}
+        </td>
+        <td class="text-align-right">
+            {% if repo.ready %}
+                <a href="#" class="btn btn-block btn-warning">
+                    {{ repo.filechange_set.count|intcomma }}
+                </a>
+            {% else %}
+                {{ repo.filechange_set.count|intcomma }}
+            {% endif %}
+        </td>
+        <td class="text-align-right">
+            {% if repo.ready %}
+                <a href="#% url 'repo-devs-list' repo.id %}?from=repos" class="btn btn-block btn-info">
+                    {{ repo.devs_count|intcomma }}
+                </a>
+            {% else %}
+                {{ repo.devs_count|intcomma }}
+            {% endif %}
+        </td>
+        <td>
+            {% if repo.ready %}
+                <a href="{% url 'repository-detail' repo.id %}" class="btn btn-block btn-primary">
+                    <i class="fas fa-money-check"></i>
+                </a>
+            {% else %}
+                {% trans 'ANALYZING' %}
+            {% endif %}
+        </td>
+
+
+    </tr>
+{% endfor %}
+{% endblock %}
+
+
+
+{% block table_footer %}
+    {% if page_obj.paginator.count == 0%}
+        {% trans 'no repos' %}
+    {% elif page_obj.paginator.count == 1 %}
+        {{ page_obj.paginator.count }} {% trans 'repo' %}
+    {% else %}
+        {{ page_obj.paginator.count }} {% trans 'repos' %}
+    {% endif %}
+{% endblock %}
+
+{% block top_actions %}
+    {% include 'repository/blocks/add_repo_top_action.html' %}
+    <li class="divider"></li>
+    <li>
+        <div class="top_action_button_div dropdown-toggle">
+            <a class="btn btn-sm btn-default" href="{% url 'dashboard' %}">
+                <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+            </a>
+        </div>
+    </li>
+    <li>&nbsp;</li>
+    <li class="divider"></li>
+{% endblock %}
+
+{% block breadcrumb_end %}repos{% endblock %}

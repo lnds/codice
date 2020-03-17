@@ -1,0 +1,48 @@
+{% extends 'codice/base_home.html' %}
+{% load static %}
+{% load i18n %}
+{% load gravatar %}
+{% load humanize %}
+{% load mathfilters %}
+{% load boxes %}
+{% block content_body %}
+    <h2 class="page-title"><i class="fas fa-columns"></i> {% trans 'Dashboard' %}</h2>
+    {% if repo_count == 0 %}
+        <section class="widget">
+            <div class="body">
+                <div class="jumbotron">
+                    <h2>{% trans 'No repository found' %}</h2>
+                    <p class="lead">{% trans 'You have not created any repository yet' %}</p>
+                    <p class="lead">
+                        <a class="btn btn-primary btn-lg" href="{% url 'repository-add' %}" role="button">
+                            <i class="fa fa-plus-circle"></i> <small>{% trans 'Add Repository' %}</small>
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </section>
+    {% else %}
+          <div class="row">
+            <div class="col-md-6">
+                <div class="row">
+                    <a href="{% url 'repos' %}">
+                        {% if repo_count == 1 %}
+                            {% icon_box 'col-md-3' 'fas fa-archive text-warning' 'text-warning' repo_count|intcomma 'repository' %}
+                        {% else %}
+                            {% icon_box 'col-md-3' 'fas fa-archive text-warning' 'text-warning' repo_count|intcomma 'repositories' %}
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+          </div>
+    {% endif %}
+{% endblock content_body %}
+{% block top_actions %}
+    {% include 'repository/blocks/add_repo_top_action.html' %}
+    <li class="divider"></li>
+    <li>&nbsp;</li>
+
+{% endblock %}
+{% block breadcrumb_path %}
+        <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+{% endblock breadcrumb_path %}

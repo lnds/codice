@@ -1,0 +1,50 @@
+{% load i18n %}
+<div class="row">
+    <div class="col-xs-12 col-sm-10 col-md-8 col-lg-8">
+        <div class="widget" style="height: 100%; max-height: 100%;">
+                <header>
+                    <h4>{% trans 'Hotspots map' %}</h4>
+                    <div class="widget-controls">
+                        <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
+                        <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+                    </div>
+                </header>
+                <div class="body">
+                    <div id="hotspots-chart" ></div>
+                </div>
+        </div>
+    </div>
+    <div class="col-xs-12 col-sm-2 col-md-4 col-lg-4">
+        <div id="treemaps">
+            <div class="widget">
+                <header>
+                    <h4>{% trans 'Knowledge map' %}</h4>
+                    <div class="widget-controls">
+                        <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
+                        <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+                    </div>
+                </header>
+                <div class="body">
+                        <div class="row">
+                            <div id="kmap"></div>
+                        </div>
+                </div>
+            </div>
+             <div class="widget">
+                    <header>
+                        <h4>{% trans 'Code Size Map' %}</h4>
+                        <div class="widget-controls">
+                        <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
+                        <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+                    </div>
+                    </header>
+                    <div class="body">
+                        <div class="row">
+                            <div id="cmap"></div>
+                        </div>
+                    </div>
+             </div>
+        </div>
+
+    </div>
+</div>

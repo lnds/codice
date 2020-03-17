@@ -1,0 +1,96 @@
+{% extends 'codice/base_home.html' %}
+{% load static %}
+{% load i18n %}
+{% load gravatar %}
+{% load humanize %}
+{% load mathfilters %}
+{% load boxes %}
+{% load bootstrap4 %}
+
+{% block additional_head %}
+{% if not repository.ready %}
+<meta http-equiv="refresh" content="10" >
+<style>
+.tooltip-table {
+  width: 100%;
+}
+
+.tooltip-table .data {
+  text-align: right;
+}
+
+.tooltip-footer {
+  opacity: 0.5;
+}
+</style>
+{% endif %}
+<style>
+
+.node {
+    color:black;
+  cursor: pointer;
+
+}
+
+.node:hover {
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+.node--root {
+  stroke: #777;
+  stroke-width: 2px;
+}
+
+.node--leaf {
+  fill: white;
+  stroke: #777;
+  stroke-width: 1px;
+}
+
+.label {
+  font: 18px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: black;
+}
+
+.label,
+.node--root{
+  pointer-events: none;
+}
+</style>
+
+{% endblock %}
+{% block content_body %}
+    <h2 class="page-title">
+        <i class="fas fa-archive"></i> {%trans 'Repository' %}: {{ repository.name}}
+        &nbsp;
+        <small>{% trans 'Branch:' %} {{ branch.name }}</small>
+    </h2>
+    {% include 'repository/blocks/stats_widgets.html' %}
+    {% include 'repository/blocks/maps.html' %}
+    {% include 'repository/blocks/developers_of_branch.html' %}
+{% endblock %}
+{% block breadcrumb_path %}
+    <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+    <a href="{% url 'repos' %}"><span class="text-gray-lighter">{% trans 'repos' %}</span></a> /
+    <span class="text-gray-light">{{ repository.name|lower }}</span>
+{% endblock %}
+
+{% block top_actions %}
+    <li class="divider"></li>
+    <li>
+        <div class="top_action_button_div dropdown-toggle">
+            <a class="btn btn-sm btn-default" href="{% url 'repos' %}">
+                <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+            </a>
+        </div>
+    </li>
+    {% if user.can_del_repo %}
+        {% include 'repository/blocks/delete_modal.html' %}
+    {% endif %}
+    <li class="divider"></li>
+{% endblock top_actions %}
+
+{% block additional_javascript %}
+    {% include 'repository/blocks/scripts.html' %}
+{% endblock %}

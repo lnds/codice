@@ -1,0 +1,8 @@
+{% load gravatar %}
+{% load static %}
+<ul id="account-menu" class="dropdown-menu account" role="menu">
+    <li role="presentation" class="account-picture">
+        <img class="img-circle" src="{% gravatar_url user.email 32 %}" width="32" onerror="this.src='{% static 'img/1.png' %}'" alt="user">
+        {{ user.username }}
+    </li>
+</ul>

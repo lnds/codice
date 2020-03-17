@@ -1,0 +1,36 @@
+{% extends 'codice/base_form.html' %}
+{% load static %}
+{% load i18n %}
+{% load bootstrap4 %}
+{% block form_title %}
+    <i class="fa fa-archive"></i>
+    <i class="fa fa-plus"></i>
+    {% trans 'Add Repository' %}
+{% endblock form_title %}
+{% block form_1_caption %}
+    <small>{% trans 'Create new repository' %}</small>
+{% endblock %}
+{% block form_1_content %}
+    <form id="repository-form" class="form-horizontal form-label-left" method="post" action="{% url 'repository-add' %}">
+        <fieldset class="mt-sm">
+            <legend>{% trans 'Repository Info'%} <small>{% trans 'Conection Information of  your repository' %}</small></legend>
+        </fieldset>
+        <fieldset>
+            {% csrf_token %}
+            {% bootstrap_form form layout='horizontal' %}
+        </fieldset>
+        <div class="form-actions">
+            <div class="row">
+                <div class="col-sm-8 col-sm-offset-1">
+                    <button type="submit" class="btn btn-info waves-effect" >{% trans 'Save' %}</button>
+                    <a href="{% url 'home' %}" class="btn btn-inverse">{% trans 'Cancel' %}</a>
+                </div>
+            </div>
+        </div>
+    </form>
+{% endblock %}
+
+{% block breadcrumb_path %}
+    <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+    <span class="text-gray-light">{% trans 'add repository' %}</span>
+{% endblock %}

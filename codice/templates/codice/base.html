@@ -1,0 +1,35 @@
+{% extends 'codice/bootstrap4.html' %}
+{% load static %}
+{% load i18n %}
+{% block bootstrap4_title %}
+{% block title %}
+CODICE
+{% endblock title %}
+{% endblock bootstrap4_title %}
+{% block bootstrap4_extra_head %}
+    {% block additional_head %}
+    {% endblock additional_head %}
+{% endblock %}
+
+{% block bootstrap4_before_content%}
+<div class="logo">
+    <a href="#% url '#home' %}"><img src="{% static 'img/logo.png' %}" style="border: 0px; margin: 0px"></a>
+    <span class="divider" >&nbsp;|&nbsp;{% trans 'version' %} {{ CODICE_VERSION }}</span>
+    <span class="divider">&nbsp;|&nbsp;</span>
+    {% block breadcrumb_path %}
+        <b>{{ user.name }}</b>
+    {% endblock %}
+</div>
+{% endblock bootstrap4_before_content %}
+
+{% block bootstrap4_content %}
+{% block content %}
+{% endblock content %}
+
+{% endblock %}
+
+{% block bootstrap4_extra_script %}
+{% block additional_javascript %}
+{% endblock additional_javascript %}
+{% endblock %}
+
