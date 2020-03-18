@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Count, F
+from django.db.models import Count, F, Value
 from django.utils.functional import cached_property
 
 from commits.models import Commit
@@ -48,6 +48,7 @@ class File(models.Model):
     path = models.ForeignKey(FilePath, on_delete=models.CASCADE)
     repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+    knowledge_owner = models.ForeignKey(Developer, null=True, on_delete=models.SET_NULL, default=None)
 
     class Meta:
         db_table = 'codice_file'
@@ -87,7 +88,7 @@ class File(models.Model):
         ).exclude(
             pk=self.pk
         ).annotate(
-            num_commits=Count(F('filechange__commit') / len(commits))
+            num_commits=Count(F('filechange__commit')) / Value(len(commits))
         ).order_by(
             '-num_commits'
         )

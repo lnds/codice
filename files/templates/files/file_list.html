@@ -1,0 +1,274 @@
+{% extends 'codice/base_table.html' %}
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+{% load bootstrap4 %}
+{% block breadcrumb_path %}
+    <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+    {% if repo %}
+        {% if request.GET.from == 'repos' %}
+        <a href="{% url 'repos' %}"><span class="text-gray-lighter">{% trans 'repos' %}</span></a> /
+        {% endif %}
+       <a href="{% url 'repository-alone-detail' repo.id %}"><span class="text-gray-lighter">{{ repo.name|lower }}</span></a> /
+ {% endif %}
+    <span>{% trans 'files' %}</span>
+{% endblock %}
+{% block empty_table %}
+    <h2>{% trans 'No files found' %}</h2>
+    <p class="lead">{% trans 'You have not created any repository yet' %}</p>
+    <p class="lead">
+        <a class="btn btn-primary btn-lg" href="{% url 'repository-add' %}" role="button">
+            <i class="fa fa-plus-circle"></i> <small>{% trans 'Add Repository' %}</small>
+        </a>
+    </p>
+{% endblock empty_table %}
+{% block table_title %}
+    <i class="far fa-file-code "></i>
+    {% trans 'Files' %}
+    {% if repo %}
+        {% trans 'Repository:' %}
+        <a href="{% url 'repository-alone-detail' repo.id %}">{{ repo.name }}</a>
+    {% endif %}
+{% endblock %}
+{% block table_head %}
+<th>
+    {% if sort == '-name' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=name{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'File' %} <i class="fa fa-caret-down"></i>
+        </a>
+    {% elif sort == 'name' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-name{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'File' %} <i class="fa fa-caret-up"></i>
+        </a>
+    {% else %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-name{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'File' %}
+        </a>
+    {% endif %}
+</th>
+<th>
+    {% if sort == '-repo' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=repo{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Repo' %} <i class="fa fa-caret-down"></i>
+        </a>
+    {% elif sort == 'repo' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-repo{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Repo' %} <i class="fa fa-caret-up"></i>
+        </a>
+    {% else %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-repo{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Repo' %}
+        </a>
+    {% endif %}
+</th>
+<th>
+    {% if sort == '-lang' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=lang{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Lang' %} <i class="fa fa-caret-down"></i>
+        </a>
+    {% elif sort == 'lang' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-lang{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Lang' %} <i class="fa fa-caret-up"></i>
+        </a>
+    {% else %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-lang{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Lang' %}
+        </a>
+    {% endif %}
+</th>
+<th class="text-right">
+    {% if sort == '-loc' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=loc{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'LOC' %} <i class="fa fa-caret-down"></i>
+        </a>
+    {% elif sort == 'loc' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-loc{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'LOC' %} <i class="fa fa-caret-up"></i>
+        </a>
+    {% else %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-loc{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'LOC' %}
+        </a>
+    {% endif %}
+</th>
+<th class="text-right">
+    {% if sort == '-comments' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=comments{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Comments' %} <i class="fa fa-caret-down"></i>
+        </a>
+    {% elif sort == 'comments' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-comments{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Comments' %} <i class="fa fa-caret-up"></i>
+        </a>
+    {% else %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-comments{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Comments' %}
+        </a>
+    {% endif %}
+</th>
+<th class="text-right">
+    {% if sort == '-empty' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=empty{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Blanks' %} <i class="fa fa-caret-down"></i>
+        </a>
+    {% elif sort == 'empty' %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-empty{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Blanks' %} <i class="fa fa-caret-up"></i>
+        </a>
+    {% else %}
+        <a href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-empty{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'Blanks' %}
+        </a>
+    {% endif %}
+</th>
+<th class="text-right">
+    <a title="{% trans 'indent complexity' %}"
+    {% if sort == '-ic' %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=ic{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'IC' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'ic' %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-ic{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'IC' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-ic{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'IC' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-right">
+    <a title="{% trans 'coupled files' %}"
+    {% if sort == '-cf' %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=cf{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'CF' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'cf' %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-cf{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'CF' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-cf{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'CF' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-right">
+     <a title="{% trans 'Sum of temporal Coupling'%}"
+    {% if sort == '-soc' %}
+       href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=soc{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'SOC' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'soc' %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-soc{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'SOC' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-soc{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'SOC' %}
+    {% endif %}
+    </a>
+
+</th>
+<th class="text-right">
+    <a title="{% trans 'Changes' %}"
+    {% if sort == '-changes' %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=changes{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'CHGS' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'changes' %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-changes{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'CHGS' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-changes{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'CHGS' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-right">
+    <a title="{% trans 'committers' %}"
+    {% if sort == '-authors' %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=authors{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'committers' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'changes' %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-authors{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'committers' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?{% if is_paginated %}page={{ page_obj.number }}&{% endif %}sort=-authors{% if filter %}&filter={{ filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+        {% trans 'committers' %}
+    {% endif %}
+    </a>
+</th>
+{% endblock %}
+{% block table_body %}
+{% for file in file_list %}
+    <tr>
+        <td>
+                <a href="{% url 'file-detail-view' file.id %}">
+                    <small>
+                        <i class="{{ file.get_css }}"></i>
+                        {{ file.filename }}
+                    </small>
+                </a>
+        </td>
+        <td>{{ file.repository }}</td>
+        <td>
+            <small>
+            {% if  file.empty or file.binary %}
+                &nbsp;n/a
+            {% else %}
+                {{ file.language }}
+            {% endif %}
+            </small>
+
+        </td>
+        <td class="text-align-right"><small>{{ file.code|intcomma }}</small></td>
+        <td class="text-align-right"><small>{{ file.doc|intcomma }}</small></td>
+        <td class="text-align-right"><small>{{ file.blanks|intcomma }}</small></td>
+        <td class="text-align-right"><small>{{ file.indent_complexity|floatformat:2 }}</small></td>
+        <td class="text-align-right"><small>{{ file.coupled_files }}</small></td>
+        <td class="text-align-right"><small>{{ file.soc|intcomma }}</small></td>
+        <td class="text-align-right"><small>{{ file.changes }}</small></td>
+        <td class="text-align-right"><small>{{ file.authors }}</small></td>
+    </tr>
+
+{% endfor %}
+{% endblock %}
+{% block top_actions %}
+    <li class="divider"></li>
+    <li>
+     <form name="filter_form" method="get" class="navbar-form pull-right">
+        {% if sort %}
+            <input type="hidden" value="{{ sort }}" name="sort">
+        {% endif %}
+        {% if search_query %}
+            <input type="hidden" value="{{ search_query }}" name="q">
+        {% endif %}
+        {% if is_paginated %}
+            <input type="hidden" value="{{ 1 }}" name="page">
+        {% endif %}
+        <label for="filter">{% trans 'Filter by language:' %}</label>
+        <select name="filter" class="form-control filter-query" onchange="filter_form.submit()">
+            <option value="">{% trans 'none' %}</option>
+            {% for lang in languages %}
+                <option value="{{lang.language}}" {% if filter == lang.language %}selected{% endif %}>{{ lang.language }}</option>
+            {% endfor %}
+        </select>
+     </form>
+    </li>
+    <li class="divider"></li>
+    <li>
+        <div class="top_action_button_div dropdown-toggle">
+            {% if repo %}
+                {% if request.GET.from == 'repos' %}
+                    <a class="btn btn-sm btn-default" href="{% url 'repos' %}">
+                        <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+                    </a>
+                {% else %}
+                    <a class="btn btn-sm btn-default" href="{% url 'repository-alone-detail' repo.id %}">
+                        <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+                    </a>
+                {% endif %}
+            {% else %}
+            <a class="btn btn-sm btn-default" href="{% url 'dashboard' %}">
+                <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+            </a>
+            {% endif %}
+        </div>
+    </li>
+    <li>&nbsp;</li>
+    <li class="divider"></li>
+{% endblock %}

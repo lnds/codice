@@ -46,6 +46,7 @@ THIRD_PARTY_APPS = [
     'fontawesome_5',
     'django_gravatar',
     'mathfilters',
+    'django_pygments',
 ]
 
 LOCAL_APPS = [

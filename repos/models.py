@@ -11,10 +11,12 @@ def get_default_branches_for_repos(repos):
     result = []
     for repo in repos:
         r = None
-        if repo.default_branch > '':
+        if repo.default_branch and   repo.default_branch > '':
             try:
                 r = repo.branch_set.get(name=repo.default_branch)
             except Repository.DoesNotExist:
+                r = None
+            except:
                 r = None
         if r is None:
             r = repo.branch_set.first()

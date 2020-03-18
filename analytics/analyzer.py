@@ -202,7 +202,11 @@ class RepoAnalyzer(object):
             file.soc = file.calc_soc(file.commits)
 
             if file.id in file_owners:
-                file.knowledge_owner_id = file_owners[file.id]
+                knowledge_owner_id = file_owners[file.id]
+                try:
+                    file.knowledge_owner = Developer.objects.get(pk=knowledge_owner_id)
+                except Developer.DoesNotExist:
+                    pass
 
             file.save()
 
