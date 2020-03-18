@@ -1,0 +1,61 @@
+{% extends 'codice/base_home.html' %}
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+{% load pygmentify %}
+{% load static %}
+{% block additional_head%}
+        <link rel="stylesheet" type="text/css" href="{% static 'django_pygments/css/pygments_default.css' %}" />
+        <link rel="stylesheet" type="text/css" href="{% static 'django_pygments/css/demo.css' %}" />
+{% endblock %}
+{% block breadcrumb_path %}
+    <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+    {% if project %}
+        <a href="{% url 'projects-detail' project.id %}"><span class="text-gray-lighter">{{ project.name }}</span></a> /
+        <a href="{% url 'file-list-project' project.id %}"><span class="text-gray-lighter">{% trans 'files' %}</span></a> /
+    {% else %}
+        <a href="{% url 'files' %}"><span class="text-gray-lighter">{% trans 'files' %}</span></a> /
+    {% endif %}
+    <span>{{ path.name }}</span>
+{% endblock %}
+{% block content_body %}
+    <h2 class="page-title">{% trans 'File view ' %} "{{ path.name }}"
+        {% if project %}
+            <small>
+                in project: <a href="{% url 'projects-detail' project.id %}">{{ project.name }}</a>
+            </small>
+        {% endif %}
+    </h2>
+    <div class="row" id="code-badges">
+        <div class="col-md-12">
+            {% block code_badges %}{% endblock %}
+        </div>
+    </div>
+    <div class="row" id="code-dump">
+        <div class="col-lg-7 col-md-7">
+            {% block file_dump %}{% endblock %}
+        </div>
+        <div class="col-lg-5 col-md-5 col-sm-12">
+            {% block file_authors %}{% endblock %}
+            {% block file_coupling %}{% endblock %}
+        </div>
+    </div>
+{% endblock %}
+{% block top_actions %}
+    <li class="divider"></li>
+    <li>
+        <div class="top_action_button_div dropdown-toggle">
+            {% if project %}
+                <a class="btn btn-sm btn-default" href="{% url 'file-list-project' project.id %}">
+                    <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+                </a>
+            {% else %}
+                <a class="btn btn-sm btn-default" href="{% url 'files'  %}">
+                    <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+                </a>
+            {% endif %}
+        </div>
+    </li>
+    <li>&nbsp;</li>
+    <li class="divider"></li>
+{% endblock %}

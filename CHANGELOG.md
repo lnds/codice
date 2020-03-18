@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - [codice-14] improve home dashboard
+- [codice-12] add files dashboards
 
 ## [0.1.0] - 2020-03-16
 

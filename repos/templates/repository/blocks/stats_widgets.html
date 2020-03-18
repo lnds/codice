@@ -44,7 +44,7 @@
                     <div class="col-md-6">
                         <div class="row">
                             {% big_text_box 'col-md-4' 'fa fa-code' 'big-text text-warning' 'description text-warning' loc|intcomma 'lines of code'%}
-                            <a href="# url 'file-list-repo' repo.id %}">
+                            <a href="{% url 'file-list-repo' repository.id %}">
                                 {% big_text_box 'col-md-4' 'fa fa-files-o' 'big-text text-white' 'description' file_count|intcomma 'files'%}
                             </a>
                             {% if file_count > 0 %}

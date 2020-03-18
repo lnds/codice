@@ -1,0 +1,251 @@
+{% extends 'files/_file_view_base.html' %}
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+{% load pygmentify %}
+{% load static %}
+{% load mathfilters %}
+{% load boxes %}
+{% block file_dump %}
+    <section class="widget">
+        <div class="body">
+            <div id="content">
+                {% pygment linenos='inline' %}
+                    <pre lang="{{file.language|lower}}">
+                        {{ content }}
+                    </pre>
+                {% endpygment %}
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block code_badges %}
+    <div class="row">
+        <div class="col-md-7">
+            <div class="widget">
+                <header>
+                    <div class="row">
+                        <div class="col-md-10">
+                            <h4><strong>{% trans 'Repo' %}:</strong> {{ file.repository }}</h4>
+                            <h4>
+                                <strong>{% trans 'Path:' %}</strong>
+                                <span>{{ file.path }}</span> /
+                                <strong>{% trans 'File' %}:</strong> {{ file.name }}
+                            </h4>
+                        </div>
+                        {% if not file.exists %}
+                            <div class="col-md-2">
+                                <i class="fa fa-3x fa-ban text-danger"></i>
+                                {% trans 'File not available' %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </header>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="widget">
+                <header>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h4><strong>{% trans 'Creator' %}</strong> {{ creator }}</h4>
+                            <h4><strong>{% trans 'Owner' %}</strong> {{ knowledge_owner }}</h4>
+                        </div>
+                    </div>
+                </header>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="row">
+                {% big_text_box 'col-md-3' 'fas fa-stream' file.get_indent_complexity_css file.get_indent_complexity_css file.indent_complexity|floatformat:1 'indent complexity' %}
+                {% big_text_box 'col-md-3' 'fa fa-code' 'text-warning' 'text-warning' file.code|intcomma 'LOC' %}
+                {% big_text_box 'col-md-3' 'fas fa-info' 'text-info' 'text-info' file.doc|intcomma 'comments'%}
+                <a href="#% url 'commits-by-file' file.id %}">
+                {% big_text_box 'col-md-3' 'fa fa-dot-circle' 'text-success' 'text-success' file.commits.count 'commits' %}
+                </a>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="row">
+                {% big_text_box 'col-md-3' 'fa fa-edit' 'text-default' 'text-default' file.fileblame_set.count 'changes' %}
+                {% big_text_box 'col-md-3' 'fas fa-users' 'text-info' 'text-info' authors.count|intcomma 'committers' %}
+                {% big_text_box 'col-md-3' 'fas fa-copy' 'text-warning' 'text-warning' count_coupled_files 'coupled files' %}
+                {% big_text_box 'col-md-3' 'fas fa-clone' 'text-warning' 'text-warning' file.soc 'SOC' %}
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+{% block file_authors %}
+    <div class="row">
+        <div class="col-md-12">
+            <section class="widget">
+                {% if commits %}
+                    <header>
+                        <h4>{{ commits.count }} {% trans 'commits by:' %} {{ author }}</h4>
+                        <h6>
+                            {% if project %}
+                                <a href="{% url 'file-view' project.id file.id %}">
+                                    <i class="fa fa-close"></i> {% trans 'ommit filter' %}
+                                </a>
+                            {% else %}
+                                <a href="{% url 'file-detail-view' file.id %}">
+                                    <i class="fa fa-close"></i> {% trans 'ommit filter' %}
+                                </a>
+
+                            {% endif %}
+                        </h6>
+                    </header>
+                    <div class="body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="widget-table-overflow">
+                                    <table class="table table-responsive">
+                                        <tbody>
+                                            {% for commit in commits %}
+                                                <tr>
+                                                    <td style="overflow: hidden; width: 90px;max-width: 90px; margin-right:10px;padding-right: 10px" class="width-100">
+                                                        <p class="text-info">
+                                                            {{ commit.hexsha|truncatechars:9 }} {{ commit.date }}
+                                                        </p>
+                                                        <p  style="overflow: hidden; word-wrap: break-word">
+                                                            {{ commit.message|wordwrap:60|linebreaks }}
+                                                        </p>
+                                                        <p>
+                                                            <span class="text-primary">
+                                                                {% trans 'Files Changed' %}:
+                                                                {{ commit.filechange_set.count|intcomma }}
+                                                            </span><br>
+                                                            <span class="text-info">
+                                                                {% trans 'Ins' %}: {{ commit.insertions|intcomma }}
+                                                            </span>&nbsp;|&nbsp;
+                                                            <span class="text-danger">
+                                                                {% trans 'Del' %}: {{ commit.deletions|intcomma }}
+                                                            </span>&nbsp;|&nbsp;
+                                                            <span class="text-success">
+                                                                {% trans 'Net' %}: {{ commit.net|intcomma }}
+                                                            </span>
+                                                        </p>
+
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% elif authors %}
+                    <header>
+                        <h4>{% trans 'Committers' %}
+                            {% if authors.count == authors_limit %}
+                                <small> ({% trans 'shows top ' %} {{ authors.count }})</small>
+                            {% endif %}
+                        </h4>
+                    </header>
+                    <div class="body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="widget-table-overflow">
+                                    <table class="table table-responsive">
+                                        <thead>
+                                            <tr>
+                                                <th>{% trans 'Author' %}</th>
+                                                <th class="text-align-right">{% trans 'Commits' %}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for a in authors %}
+                                            <tr>
+                                                <td>
+                                                        <a href="#% url 'full-developer-profile' a.author %}">
+                                                        {{ a.author__name }} &lt;{{ a.author__email }}&gt;
+                                                        </a>
+                                                </td>
+                                                <td class="text-align-right">
+                                                    <a href="?commits_by={{ a.author }}">
+                                                    {{ a.count }}
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                     <div class="body">
+                        <div class="jumbotron">
+                            <p class="lead">
+                                {% trans 'No authors found' %}
+                            </p>
+                        </div>
+                    </div>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+{% endblock %}
+{% block file_coupling %}
+    <div class="row">
+        <div class="col-md-12">
+            <section class="widget">
+                {% if coupled_files %}
+                    <header>
+                        <h4>{% trans 'Temporal Coupling' %}
+                            {% if count_coupled_files >= coupled_files_limit %}
+                                <small> ({% trans 'shows top' %} {{ coupled_files_limit }})</small>
+                            {% endif %}
+                        </h4>
+                    </header>
+                    <div class="body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="widget widget-table-overflow">
+                                <div class="table-responsive">
+                                    <table class="table table-responsive">
+                                        <thead>
+                                            <tr>
+                                                <th class="overflow-hidden"></th>
+                                                <th >{%trans 'File' %}</th>
+                                                <th class="text-right">{%trans 'Degree' %}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for coupled_file in coupled_files %}
+                                            <tr>
+                                                <td class="overflow-hidden">{{ forloop.counter }}</td>
+                                                <td class="">
+                                                    <a href="{% url 'file-detail-view' coupled_file.file.id %}" title="{{ coupled_file.file.filename }}">
+                                                            {{ coupled_file.file.filename|striptags }}
+                                                    </a>
+                                                </td>
+                                                <td class="text-right overflow-hidden"> {{ coupled_file.degree|mul:100.0|floatformat:1 }} %</td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                 </table>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                    <div class="body">
+                        <div class="jumbotron">
+                            <p class="lead">
+                                {% trans 'No coupled files found' %}
+                            </p>
+                        </div>
+                    </div>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+{% endblock %}
