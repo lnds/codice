@@ -7,6 +7,18 @@ from developers.models import Developer
 from repos.models import Repository, Branch
 
 
+
+class CouplingDegree:
+    file = None
+    degree = None
+
+    def __init__(self, f, d):
+        self.file = f
+        self.degree = d
+
+    def __str__(self):
+        return "{} {}".format(self.file, self.degree)
+
 class FilePath(models.Model):
     name = models.TextField(blank=True, null=True)
     path = models.TextField(blank=True)
@@ -83,15 +95,20 @@ class File(models.Model):
         return self.get_coupled_files(commits).count()
 
     def get_coupled_files(self, commits):
-        return File.objects.filter(
-            filechange__commit__in=commits
-        ).exclude(
-            pk=self.pk
-        ).annotate(
-            num_commits=Count(F('filechange__commit')) / Value(len(commits))
-        ).order_by(
-            '-num_commits'
-        )
+        shared_commits = {}
+        count_commits = 0
+        for c in commits:
+            count_commits += 1
+            files = File.objects.filter(filechange__commit=c).exclude(filename=self.filename)
+            for f in files:
+                if f in shared_commits:
+                    shared_commits[f] += 1
+                else:
+                    shared_commits[f] = 1
+        files = []
+        for f in shared_commits.keys():
+            files.append(CouplingDegree(f, shared_commits[f] / count_commits if count_commits else 0.0))
+        return sorted(files, key=lambda x: x.degree, reverse=True)
 
     # sum of temporal coupling, as defined by Tornhill, chapter 8, page 78
     def calc_soc(self, commits):

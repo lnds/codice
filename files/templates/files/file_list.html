@@ -9,8 +9,8 @@
         {% if request.GET.from == 'repos' %}
         <a href="{% url 'repos' %}"><span class="text-gray-lighter">{% trans 'repos' %}</span></a> /
         {% endif %}
-       <a href="{% url 'repository-alone-detail' repo.id %}"><span class="text-gray-lighter">{{ repo.name|lower }}</span></a> /
- {% endif %}
+       <a href="{% url 'repository-detail' repo.id %}"><span class="text-gray-lighter">{{ repo.name|lower }}</span></a> /
+    {% endif %}
     <span>{% trans 'files' %}</span>
 {% endblock %}
 {% block empty_table %}
@@ -27,7 +27,7 @@
     {% trans 'Files' %}
     {% if repo %}
         {% trans 'Repository:' %}
-        <a href="{% url 'repository-alone-detail' repo.id %}">{{ repo.name }}</a>
+        <a href="{% url 'repository-detail' repo.id %}">{{ repo.name }}</a>
     {% endif %}
 {% endblock %}
 {% block table_head %}
@@ -204,7 +204,7 @@
                     </small>
                 </a>
         </td>
-        <td>{{ file.repository }}</td>
+        <td><a href="{% url 'repository-detail' file.repository.id %}">{{ file.repository }}</a></td>
         <td>
             <small>
             {% if  file.empty or file.binary %}
@@ -258,7 +258,7 @@
                         <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
                     </a>
                 {% else %}
-                    <a class="btn btn-sm btn-default" href="{% url 'repository-alone-detail' repo.id %}">
+                    <a class="btn btn-sm btn-default" href="{% url 'repository-detail' repo.id %}">
                         <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
                     </a>
                 {% endif %}

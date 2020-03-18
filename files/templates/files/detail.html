@@ -61,18 +61,18 @@
             <div class="row">
                 {% big_text_box 'col-md-3' 'fas fa-stream' file.get_indent_complexity_css file.get_indent_complexity_css file.indent_complexity|floatformat:1 'indent complexity' %}
                 {% big_text_box 'col-md-3' 'fa fa-code' 'text-warning' 'text-warning' file.code|intcomma 'LOC' %}
-                {% big_text_box 'col-md-3' 'far fa-info' 'text-info' 'text-info' file.doc|intcomma 'comments'%}
+                {% big_text_box 'col-md-3' 'fas fa-info' 'text-info' 'text-info' file.doc|intcomma 'comments'%}
                 <a href="#% url 'commits-by-file' file.id %}">
-                {% big_text_box 'col-md-3' 'far fa-code-commit' 'text-success' 'text-success' file.commits.count 'commits' %}
+                {% big_text_box 'col-md-3' 'fa fa-dot-circle' 'text-success' 'text-success' file.commits.count 'commits' %}
                 </a>
             </div>
         </div>
         <div class="col-md-6">
             <div class="row">
-                {% big_text_box 'col-md-3' 'far fa-file-edit' 'text-default' 'text-default' file.fileblame_set.count 'changes' %}
-                {% big_text_box 'col-md-3' 'fas fa-copy' 'text-info' 'text-info' authors.count|intcomma 'committers' %}
+                {% big_text_box 'col-md-3' 'fa fa-edit' 'text-default' 'text-default' file.fileblame_set.count 'changes' %}
+                {% big_text_box 'col-md-3' 'fas fa-users' 'text-info' 'text-info' authors.count|intcomma 'committers' %}
                 {% big_text_box 'col-md-3' 'fas fa-copy' 'text-warning' 'text-warning' count_coupled_files 'coupled files' %}
-                {% big_text_box 'col-md-3' 'fas fa-copy' 'text-warning' 'text-warning' file.soc 'SOC' %}
+                {% big_text_box 'col-md-3' 'fas fa-clone' 'text-warning' 'text-warning' file.soc 'SOC' %}
             </div>
         </div>
     </div>
@@ -161,15 +161,9 @@
                                         {% for a in authors %}
                                             <tr>
                                                 <td>
-                                                    {% if project %}
-                                                        <a href="{% url 'developer-profile' project.id a.author %}">
-                                                        {{ a.author__name }} &lt;{{ a.author__email }}&gt;
-                                                        </a>
-                                                    {% else %}
                                                         <a href="#% url 'full-developer-profile' a.author %}">
                                                         {{ a.author__name }} &lt;{{ a.author__email }}&gt;
                                                         </a>
-                                                    {% endif %}
                                                 </td>
                                                 <td class="text-align-right">
                                                     <a href="?commits_by={{ a.author }}">
@@ -212,32 +206,32 @@
                     <div class="body">
                     <div class="row">
                         <div class="col-md-12">
-                            <div class="widget-table-overflow">
-                                <table class="table table-responsive">
-                                    <thead>
-                                        <tr>
-                                            <th colspan="2">{%trans 'File' %}</th>
-                                            <th class="text-right">{%trans 'Degree' %}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    {% for coupled_file in coupled_files %}
-                                        <tr>
-                                            <td>{{ forloop.counter }}</td>
-                                            <td class="overflow-hidden">
-                                                <a href="#  % url 'file-detail-view' coupled_file.file.id %}" title="{{ coupled_file.file.filename }}">
-                                                    {% if coupled_file.filename|length > 55 %}
-                                                        ...{{ coupled_file.filename|striptags|slice:"-52:" }}
-                                                    {% else %}
-                                                        {{ coupled_file.filename|striptags }}
-                                                    {% endif %}
-                                                </a>
-                                            </td>
-                                            <td class="text-right"> {{ coupled_file.num_commits|mul:1000000.0 }}%</td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
+                            <div class="widget widget-table-overflow">
+                                <div class="table-responsive">
+                                    <table class="table table-responsive">
+                                        <thead>
+                                            <tr>
+                                                <th class="overflow-hidden"></th>
+                                                <th >{%trans 'File' %}</th>
+                                                <th class="text-right">{%trans 'Degree' %}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for coupled_file in coupled_files %}
+                                            <tr>
+                                                <td class="overflow-hidden">{{ forloop.counter }}</td>
+                                                <td class="">
+                                                    <a href="{% url 'file-detail-view' coupled_file.file.id %}" title="{{ coupled_file.file.filename }}">
+                                                            {{ coupled_file.file.filename|striptags }}
+                                                    </a>
+                                                </td>
+                                                <td class="text-right overflow-hidden"> {{ coupled_file.degree|mul:100.0|floatformat:1 }} %</td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                 </table>
+                                </div>
+
                             </div>
                         </div>
                     </div>
