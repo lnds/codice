@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- [codice-13] add developers dashboard
 - [codice-14] improve home dashboard
 - [codice-12] add files dashboards
 

@@ -1,0 +1,366 @@
+{% extends 'codice/base_table.html' %}
+{% load static %}
+{% load i18n %}
+{% load gravatar %}
+{% load humanize %}
+{% load committer_stats %}
+{% load mathfilters %}
+{% block empty_table %}
+    <h2>{% trans 'No devs found' %}</h2>
+    <a class="btn btn-default btn-lg" href="{{ request.path }}" role="button">
+        <i class="fa fa-list"></i>
+        <small>&nbsp;{% trans 'Show all devs' %}</small>
+    </a>
+{% endblock empty_table %}
+{% block search_form %}
+    {% include 'codice/layout/search.html' %}
+{% endblock %}
+{% block table_title %}
+    <i class="fas fa-users"></i>
+    {% trans 'Developers' %}
+        <small>
+        {% trans 'for repository:' %}
+        <a href="#% url 'repository-detail' repository.id %}">{{ repository.name|lower }}</a>
+        </small>
+{% endblock %}
+{% block table_head %}
+ <th class="text-align-center">{% trans 'Clas' %}</th>
+<th class="text-align-left">{% trans 'Developer' %}</th>
+<th class="text-align-left">{% trans 'Grade' %}</th>
+<th class="text-align-right">
+    <a title="{% trans 'Lines inserted' %}"
+     {% if sort == '-ins' %}
+        href="?sort=ins">
+            {% trans 'Ins' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'ins' %}
+        href="?sort=-ins">
+            {% trans 'Ins' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?sort=-ins">
+            {% trans 'Ins' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    <a title="{% trans 'Lines deleted' %}"
+    {% if sort == '-del' %}
+        href="?sort=del">
+            {% trans 'Del' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'del' %}
+        href="?sort=-del">
+            {% trans 'Del' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?sort=-del">
+            {% trans 'Del' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    <a title="{% trans 'Net lines' %}"
+    {% if sort == '-net' %}
+        href="?sort=net">
+            {% trans 'Net' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'net' %}
+        href="?sort=-net">
+            {% trans 'Net' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?sort=-net">
+            {% trans 'Net' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    <a title="{% trans 'Average lines added' %}"
+    {% if sort == '-avg' %}
+        href="?sort=avg">
+            {% trans 'Avg' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'avg' %}
+        href="?sort=-avg">
+            {% trans 'Avg' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?sort=-avg">
+            {% trans 'Avg' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    <a title="{% trans 'Blame: LOC owned in current codebase' %}"
+    {% if sort == '-blame' %}
+        href="?sort=blame">
+            {% trans 'Blame' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'blame' %}
+        href="?sort=blame">
+            {% trans 'Blame' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?sort=-blame">
+            {% trans 'Blame' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    <a title="{% trans 'Churn: measure code loss' %}"
+    {% if sort == '-churn' %}
+        href="?sort=churn">
+            {% trans 'CHRN' %}  <i class="fa fa-caret-down"></i>
+    {% elif sort == 'churn' %}
+        href="?sort=-churn">
+            {% trans 'CHRN' %}  <i class="fa fa-caret-up"></i>
+    {% else %}
+         href="?sort=-churn">
+            {% trans 'CHRN' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    <a title="{% trans 'Throughput: measure coder production' %}"
+    {% if sort == '-throughput' %}
+        href="?sort=throughput">
+            {% trans 'Thpt' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'throughput' %}
+        href="?sort=-raw_throughput">
+            {% trans 'Thpt' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?sort=-throughput">
+            {% trans 'Thpt' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    <a title="{% trans 'Self churn: measure self correction/elimination of code' %}"
+    {% if sort == '-self_churn' %}
+        href="?sort=self_churn">
+            {% trans 'SlfChrn' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'self_churn' %}
+        href="?sort=-self_churn">
+            {% trans 'SlfChrn' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?sort=-self_churn">
+            {% trans 'SlfChrn' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    <a title="{% trans 'Work in others: measures collaboration' %}"
+    {% if sort == '-work_others' %}
+        href="?sort=work_others">
+            {% trans 'WrkOthr' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'work_others' %}
+        href="?sort=-work_others">
+            {% trans 'WrkOthr' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?sort=-work_others">
+            {% trans 'WrkOthr' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    <a title="{% trans 'Impact: measures how much impact on code on each commit' %}"
+    {% if sort == '-impact' %}
+        href="?sort=impact">
+        {% trans 'Impct' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'impact' %}
+        href="?sort=-impact">
+        {% trans 'Impct' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+        href="?sort=-impact">
+        {% trans 'Impct' %}
+    {% endif %}
+    </a>
+</th>
+
+<th class="text-align-right">
+    <a title="{% trans 'factor: compares this committer impact over minimal impact' %}"
+    {% if sort == '-factor' %}
+        href="?sort=factor">
+        {% trans 'Factor' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'factor' %}
+        href="?sort=-factor">
+        {% trans 'Factor' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+         href="?sort=-factor">
+        {% trans 'Factor' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    <a title="{% trans 'ownership: how much actual code belongs to this committer' %}"
+    {% if sort == '-owns' %}
+        href="?sort=owns">
+        {% trans 'Owns' %} <i class="fa fa-caret-down"></i>
+    {% elif sort == 'owns' %}
+        href="?sort=-owns">
+        {% trans 'Owns' %} <i class="fa fa-caret-up"></i>
+    {% else %}
+         href="?sort=-owns">
+        {% trans 'Owns' %}
+    {% endif %}
+    </a>
+</th>
+<th class="text-align-right">
+    {% if sort == '-changes' %}
+        <a href="?sort=changes">
+            {% trans 'Chgs' %} <i class="fa fa-caret-down"></i>
+        </a>
+    {% elif sort == 'changes' %}
+        <a href="?sort=-changes">
+            {% trans 'Chgs' %} <i class="fa fa-caret-up"></i>
+        </a>
+    {% else %}
+        <a href="?sort=-changes">
+            {% trans 'Chgs' %}
+        </a>
+    {% endif %}
+</th>
+<th class="text-align-right">
+    {% if sort == '-commits' %}
+        <a href="?sort=commits">
+            {% trans 'Commits' %} <i class="fa fa-caret-down"></i>
+        </a>
+    {% elif sort == 'commits' %}
+        <a href="?sort=-commits">
+            {% trans 'Commits' %} <i class="fa fa-caret-up"></i>
+        </a>
+    {% else %}
+        <a href="?sort=-commits">
+            {% trans 'Commits' %}
+        </a>
+    {% endif %}
+</th>
+{% endblock %}
+{% block table_body %}
+    {% for author in developer_list %}
+        {% get_badge_data author.throughput author.churn author.self_churn author.work_others author.work_self as badge  %}
+        <tr>
+            <td class="text-align-center">
+                {% if badge.badge_stack %}
+                <span class="fa-stack">
+                    <i class="{{ badge.badge_2x }}  fa-stack-1x"></i>
+                    <i class="{{ badge.badge_stack_2x }} fa-stack-2x"></i>
+                </span>
+                {% else %}
+                    <i class="{{ badge.badge_2x }}"></i>
+                {% endif %}
+            </td>
+            <td>
+                 <div class="row">
+                    <div class="col-md-2">
+                        {% if project %}
+                            <a href="{% url 'developer-profile' project.id author.author %}">
+                                <img src="{% gravatar_url author.author__email 32 %}" width="32" class="img-circle" onerror="this.src='{% static 'img/1.png' %}'">
+                            </a>
+                        {% else %}
+                            <a href="#% url 'full-developer-profile' author.author %}">
+                               <img src="{% gravatar_url author.author__email 32 %}" width="32" class="img-circle" onerror="this.src='{% static 'img/1.png' %}'">
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-10">
+                        {% if project %}
+                            <a href="{% url 'developer-profile' project.id author.author %}">
+                                {{ author.author__name }} <br><small> &lt;{{ author.author__email }}&gt;</small>
+                            </a>
+                        {% else %}
+                            <a href="#% url 'full-developer-profile' author.author %}">
+                                {{ author.author__name }} <br><small> &lt;{{ author.author__email }}&gt;</small>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </td>
+            <td>
+                {{ badge.ratio|floatformat:2 }} {{ badge.level }}
+            </td>
+            {% comment %}
+            <td class="text-align-right text-info">
+                {{ author.lines|intcomma }}
+            </td>
+            {% endcomment %}
+            <td class="text-align-right">
+                {{ author.insertions|intcomma }}
+            </td>
+            <td class="text-align-right">
+               {{ author.deletions|intcomma }}
+            </td>
+            <td class="text-align-right">
+                {{ author.net|intcomma }}
+            </td>
+            <td class="text-align-right ">
+                {{ author.net_avg|floatformat:2 }}
+            </td>
+            <td class="text-align-right">
+                {{ author.loc|intcomma }}
+            </td>
+            <td class="text-align-right {{ badge.churn_color }}">
+                {{ author.churn|mul:100.0|floatformat:1 }}%
+            </td>
+            <td class="text-align-right {{ badge.throughput_color }} ">
+                {{ author.throughput|mul:100.0|floatformat:1 }}%
+            </td>
+            <td class="text-align-right {{ badge.self_churn_color }}">
+                {{author.self_churn|mul:100.0|floatformat:1}}%
+            </td>
+            <td class="text-align-right {{ badge.work_others_color }}">
+                {{ author.work_others|mul:100.0|floatformat:1 }}%
+            </td>
+            <td class="text-align-right">
+                {{ author.log_impact|floatformat:1 }}<br>
+                {% if total_impact %}
+                {{ author.log_impact|div:total_impact|mul:100.0|floatformat:1 }}%
+                {% else %}
+                    0.0%
+                {% endif %}
+            </td>
+
+            <td class="text-align-right">
+                {% if min_impact %}
+                    {{ author.log_impact|div:min_impact|floatformat:1 }}
+                {% endif %}
+            </td>
+            <td class="text-align-right">{{ author.loc|div:total_blame|mul:100.0|floatformat:1 }}%</td>
+            <td class="text-align-right">{{ author.changes|intcomma }}</td>
+            <td class="text-align-right">{{ author.commits|intcomma }}</td>
+        </tr>
+    {% endfor %}
+{% endblock %}
+{% block table_footer %}
+    {% if page_obj.paginator.count == 0%}
+        {% trans 'no committers' %}
+    {% elif page_obj.paginator.count == 1 %}
+        {{ page_obj.paginator.count }} {% trans 'dev' %}
+    {% else %}
+        {{ page_obj.paginator.count }} {% trans 'devs' %}
+    {% endif %}
+{% endblock %}
+{% block top_actions %}
+    <li class="divider"></li>
+        <li>
+        <div class="top_action_button_div dropdown-toggle">
+            <a class="btn btn-success" href="# url 'devs-dashboard-repo' repository.id %}">
+                <i class="far fa-tachometer-alt"></i> {% trans 'devs dashboard' %}
+            </a>
+        </div>
+        </li>
+        <li class="divider"></li>
+        <li>
+            <div class="top_action_button_div dropdown-toggle">
+                <a class="btn btn-sm btn-default" href="#   % url 'repository-detail' repository.id %}">
+                    <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+                </a>
+            </div>
+        </li>
+    <li class="divider"></li>
+        <li>
+        <div class="top_action_button_div dropdown-toggle">
+            <a class="btn btn-success" href="# url 'devs-dashboard' %}">
+                <i class="fas fa-chart-bar"></i> {% trans 'devs dashboard' %}
+            </a>
+        </div>
+        </li>
+        <li class="divider"></li>
+{% endblock %}
+{% block breadcrumb_path %}
+    <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+    <a href="{% url 'repos' %}"><span class="text-gray-lighter">{% trans 'repositories' %}</span></a> /
+    <a href="#% url 'repository-detail' repository.id %}"><span class="text-gray-lighter">{{ repository.name|lower }}</span> </a> /
+    <span>{% trans 'devs' %}</span>
+{% endblock %}

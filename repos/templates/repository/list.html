@@ -79,7 +79,7 @@
         </td>
         <td class="text-align-right">
             {% if repo.ready %}
-                <a href="#% url 'repo-devs-list' repo.id %}?from=repos" class="btn btn-block btn-info">
+                <a href="{% url 'repo-devs-list' repo.id %}?from=repos" class="btn btn-block btn-info">
                     {{ repo.devs_count|intcomma }}
                 </a>
             {% else %}
