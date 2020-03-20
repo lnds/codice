@@ -12,9 +12,6 @@
         <small>&nbsp;{% trans 'Show all devs' %}</small>
     </a>
 {% endblock empty_table %}
-{% block search_form %}
-    {% include 'codice/layout/search.html' %}
-{% endblock %}
 {% block table_title %}
     <i class="fas fa-users"></i>
     {% trans 'Developers' %}
@@ -322,18 +319,14 @@
     {% endif %}
 {% endblock %}
 {% block top_actions %}
-    <li class="divider"></li>
-        <li>
-        <div class="top_action_button_div dropdown-toggle">
-            <a class="btn btn-success" href="# url 'devs-dashboard-repo' repository.id %}">
-                <i class="far fa-tachometer-alt"></i> {% trans 'devs dashboard' %}
-            </a>
-        </div>
-        </li>
         <li class="divider"></li>
         <li>
             <div class="top_action_button_div dropdown-toggle">
-                <a class="btn btn-sm btn-default" href="#   % url 'repository-detail' repository.id %}">
+                {% if repo %}
+                <a class="btn btn-sm btn-default" href="{% url 'repository-detail' repo.id %}">
+                {% else %}
+                <a class="btn btn-sm btn-default" href="{% url 'home' %}">
+                {% endif %}
                     <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
                 </a>
             </div>
@@ -350,7 +343,9 @@
 {% endblock %}
 {% block breadcrumb_path %}
     <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+    {% if repo %}
     <a href="{% url 'repos' %}"><span class="text-gray-lighter">{% trans 'repositories' %}</span></a> /
-    <a href="#% url 'repository-detail' repository.id %}"><span class="text-gray-lighter">{{ repository.name|lower }}</span> </a> /
-    <span>{% trans 'devs' %}</span>
+    <a href="{% url 'repository-detail' repo.id %}"><span class="text-gray-lighter">{{ repo.name|lower }}</span> </a> /
+    {% endif %}
+    <span class="text-gray-light">devs</span>
 {% endblock %}

@@ -1,11 +1,12 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.db.models import Sum, Avg, Count
+from django.db.models import Sum, Avg, Count, F
 from django.db.models.functions import TruncDate
 from django.views.generic import ListView, DetailView
 
 from commits.models import Commit
-from developers.charts import get_dev_activity_chart
+from developers.charts import get_dev_activity_chart, get_devs_blame_data, get_devs_owner_pie_chart, \
+    get_devs_churn_production_chart, get_devs_quadrant_chart
 from developers.models import Developer, Blame
 from developers.services import get_developers_blame_summaries, get_developer_commits, get_developer_blame_summary
 from developers.templatetags.committer_stats import get_badge_data
@@ -277,4 +278,78 @@ class DeveloperProfile(DeveloperMixin, DetailView):
         context.update(get_badge_data(throughput, churn, self_churn, work_others, work_self))
 
         context['impact'] = blame_stats['log_impact']
+        return context
+
+class DeveloperDashboard(DeveloperMixin, ListView):
+    context_object_name = 'developer_list'
+    template_name = 'developer/dashboard.html'
+
+    def get_queryset(self):
+        self.owner = self.request.user
+        if 'repo_id' in self.kwargs:
+            self.repo = Repository.objects.get(pk=self.kwargs['repo_id'])
+            self.repos = [self.repo]
+            self.branches = get_default_branches_for_repos(self.repos)
+            self.devs = Developer.objects.filter(commit__repository__in=self.repos, commit__branch__in=self.branches,
+                                                 is_alias_of__isnull=True, enabled=True).distinct()
+        else:
+            self.repo = None
+            self.repos = Repository.objects.filter(owner=self.owner)
+            self.branches = get_default_branches_for_repos(self.repos)
+            self.devs = Developer.objects.filter(commit__repository__in=self.repos, commit__branch__in=self.branches,
+                                                 is_alias_of__isnull=True, enabled=True).distinct()
+
+
+        blame_aggregate = Blame.objects.filter(author__in=self.devs.all(), repository__in=self.repos,
+                                               branch__in=self.branches).aggregate(loc=Sum('loc'))
+
+        self.total_blame = blame_aggregate['loc']
+
+        self.sort_by = '-commits'
+        self.search_query = None
+        self.blames = get_developers_blame_summaries(self.repos, self.branches, self.sort_by, self.search_query)
+
+        return self.blames
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        self.branches = get_default_branches_for_repos(self.repos)
+        context['repo'] = self.repo
+        context['devs'] = self.devs
+        context['repos'] = self.repos
+        blames = self.blames
+        devs = []
+        commits_dev = 0
+        locs_dev = 0
+        for blame in blames:
+            dev = Developer.objects.get(pk=blame['author'])
+            devs.append(dev)
+            commits_dev += blame['commits']
+            locs_dev += blame['loc']
+        context['commits_dev'] = commits_dev / len(devs) if devs and len(devs) > 0 else 0
+        context['locs_dev'] = locs_dev / len(devs) if devs and len(devs) > 0 else 0
+        context['dev_count'] = len(devs)
+        blames = get_devs_blame_data(devs, self.repos, self.branches, self.total_blame)
+        pie = get_devs_owner_pie_chart(blames)
+        context['charttype_pie'] = "pieChart"
+        context['chartdata_pie'] = pie['data']
+        context['chartcontainer_pie'] = "piechart_container"
+        context['extra_pie'] = pie['extra']
+
+        mbh_chart = get_devs_churn_production_chart(blames)
+        context['charttype_mbh'] = "multiBarHorizontalChart"
+        context['chartdata_mbh'] = mbh_chart['data']
+        context['extra_mbh'] = mbh_chart['extra']
+        context['chartcontainer_mbh'] = "mbhchart_container"
+
+        knowledge = FileKnowledge.objects.filter(file__repository__in=self.repos,
+                                                 file__branch__in=self.branches, author__in=devs).\
+            select_related('author__name').filter(author__enabled=True).\
+            values('author__name').annotate(knowledge=Sum(F('added') + F('deleted')))
+        context['knowledge'] = knowledge
+
+        quadrant = get_devs_quadrant_chart( blames)
+        context['quadrant_data'] = quadrant['data']
+
         return context
