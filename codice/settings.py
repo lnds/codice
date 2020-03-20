@@ -47,6 +47,7 @@ THIRD_PARTY_APPS = [
     'django_gravatar',
     'mathfilters',
     'django_pygments',
+    'django_nvd3'
 ]
 
 LOCAL_APPS = [

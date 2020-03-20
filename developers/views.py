@@ -1,14 +1,17 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.db.models import Sum, F
-from django.views.generic import ListView
+from django.db.models import Sum, Avg, Count
+from django.db.models.functions import TruncDate
+from django.views.generic import ListView, DetailView
 
-from developers.charts import get_devs_blame_data, get_devs_owner_pie_chart, get_devs_churn_production_chart, \
-    get_devs_quadrant_chart
+from commits.models import Commit
+from developers.charts import get_dev_activity_chart
 from developers.models import Developer, Blame
-from developers.services import get_developers_blame_summaries
-from files.models import FileKnowledge
+from developers.services import get_developers_blame_summaries, get_developer_commits, get_developer_blame_summary
+from developers.templatetags.committer_stats import get_badge_data
+from files.models import FileKnowledge, FileChange, File
 from repos.models import get_default_branches_for_repos, Repository
+from repos.punchcard import get_dev_punchcard
 
 
 class DeveloperMixin(LoginRequiredMixin):
@@ -114,4 +117,164 @@ class DeveloperList(DeveloperMixin, ListView):
         context['min_impact'] = self.min_impact
         page_obj = context['page_obj']
         context['search_query'] = self.search_query
+        return context
+
+
+class DeveloperProfile(DeveloperMixin, DetailView):
+    context_object_name = 'developer'
+    template_name = 'developers/profile.html'
+    commits_limit = 12
+
+    def get_context_data(self, **kwargs):
+        self.owner = self.request.user
+        context = super().get_context_data(**kwargs)
+        repos_id = Commit.objects.filter(author=self.object).values('repository_id').distinct()
+        self.repos = Repository.objects.filter(id__in=repos_id)
+        self.branches = get_default_branches_for_repos(self.repos)
+
+        self.devs = Developer.objects.filter(owner=self.owner, is_alias_of__isnull=True, enabled=True).distinct()
+
+        blame_aggregate = Blame.objects.filter(author__in=self.devs.all(),
+                                               repository__in=self.repos,
+                                               branch__in=self.branches) \
+            .aggregate(loc=Sum('loc'), total_impact=Sum('impact'), min_impact=Avg('impact'))
+        self.total_blame = blame_aggregate['loc']
+        self.total_impact = blame_aggregate['total_impact']
+        self.min_impact = blame_aggregate['min_impact']
+
+        context['devs'] = self.devs
+        context['total_blame'] = self.total_blame
+        if self.object.owner != self.owner:
+            raise PermissionDenied
+
+        commit_set = get_developer_commits(self.object, self.repos, self.branches)
+        blame_stats = get_developer_blame_summary(self.object, self.repos, self.branches, self.total_blame)
+        if not blame_stats:
+            return context
+
+        self_churn = blame_stats['self_churn']
+        context['self_churn'] = self_churn
+        work_others = blame_stats['work_others']
+        work_self = blame_stats['work_self']
+        context['changes'] = blame_stats['changes']
+        context['commits_limit'] = self.commits_limit
+
+        commit_count = blame_stats['commits_count'] or 0
+        context['commits_count'] = commit_count
+
+        repo_data = []
+        files_created = 0
+        files_deleted = 0
+        for repo in self.repos:
+            branch = repo.get_default_branch()
+            fc = FileChange.objects.filter(repository=repo, branch=branch, commit__author = self.object,
+                                           change_type__in=["A", "C"]).distinct().count()
+            files_created += fc
+            fd = FileChange.objects.filter(repository=repo, branch=branch, commit__author = self.object,
+                                           change_type__in=["D"]).distinct().count()
+            files_deleted += fd
+            co = Commit.objects.filter(repository=repo, author=self.object, branch=branch).count()
+            cod = Blame.objects.filter(repository=repo, author=self.object, branch=branch)\
+                .aggregate(commits=Sum('commits'), changes=Sum('changes'),
+
+                           insertions=Sum('insertions'), deletions=Sum('deletions'), net=Sum('net'))
+
+            ch = FileChange.objects.filter(repository=repo, commit__author=self.object, branch=branch).count()
+            repo_data.append({'repo': repo, 'files_created': fc, 'files_deleted': fd, 'commits': co, 'changes': ch,
+                              'insertions': cod['insertions'] or 'lost',
+                              'deletions': cod['deletions'] or 'lost',
+                              'net': cod['net'] or 'lost'})
+
+        context['files_created'] = files_created
+        context['files_deleted'] = files_deleted
+        context['repo_data'] = repo_data
+        context['repos_count'] = self.repos.count()
+        active_days = blame_stats['days']
+        context['active_days'] = active_days
+
+        context['commits_per_day'] = commit_count/ active_days if active_days > 0 else 0
+
+        context['total_days'] = Commit.objects.filter(repository__in=self.repos, branch__in=self.branches)\
+            .annotate(only_date=TruncDate('date'))\
+            .aggregate(days=Count('only_date', distinct=True))['days']
+
+
+        owned_files = File.objects.filter(repository__in=self.repos, branch__in=self.branches, knowledge_owner=self.object).count()
+        total_files = File.objects.filter(repository__in=self.repos, branch__in=self.branches).count()
+
+        context['owned_files'] = owned_files
+        context['total_files'] = total_files
+
+        file_ownership = owned_files / total_files if total_files > 0 else 0.0
+        context['file_ownership'] = file_ownership
+
+        fc1 = FileKnowledge.objects.filter(file__repository__in=self.repos, file__branch__in=self.branches,
+                                           author=self.object)\
+            .aggregate(a=Sum('added'), d=Sum('deleted'), k=Avg('knowledge'))
+
+        a = fc1['a']
+        d = fc1['d']
+
+        context['knowledge'] = fc1['k']
+
+        fc2 = FileKnowledge.objects.filter(file__repository__in=self.repos, file__branch__in=self.branches) \
+            .aggregate(a=Sum('added'), d=Sum('deleted'))
+
+        at = fc2['a']
+        dt = fc2['d']
+
+        file_knowledge = (a+d) / (at+dt) if (at+dt) > 0 else 0.0
+
+        context['file_knowledge'] = file_knowledge
+
+        context['active_since'] = blame_stats['since']
+        context['last_commit'] = blame_stats['last_commit']
+        context['punchcard'] = get_dev_punchcard(self.object, self.repos, self.branches)
+
+        activity_chart = get_dev_activity_chart(self.object, self.repos)
+        context['charttype_activity'] = 'lineChart'
+        context['chartdata_activity'] = activity_chart['data1']
+        context['chartcontainer_activity'] = 'chartcontainer_activity'
+        context['extra_activity'] = activity_chart['extra2']
+
+        context['charttype_activity_acum'] = 'stackedAreaChart'
+        context['chartdata_activity_acum'] = activity_chart['data3']
+        context['chartcontainer_activity_acum'] = 'chartcontainer_activity_acum'
+        context['extra_activity_acum'] = activity_chart['extra3']
+
+        context['charttype_commit'] = 'lineChart'
+        context['chartdata_commit'] = activity_chart['data2']
+        context['chartcontainer_commit'] = 'chartcontainer_commit'
+        context['extra_commit'] = activity_chart['extra2']
+
+        context['charttype_commit_acum'] = 'stackedAreaChart'
+        context['chartdata_commit_acum'] = activity_chart['data4']
+        context['chartcontainer_commit_acum'] = 'chartcontainer_commit_acum'
+        context['extra_commit_acum'] = activity_chart['extra4']
+
+        context['total_blame'] = self.total_blame
+        context['ownership'] = blame_stats['blame'] / self.total_blame
+        context['blame'] = blame_stats['blame']
+        context['commits'] = commit_set.distinct().order_by('-date')[0:self.commits_limit]
+        context['work_others'] = work_others
+
+        churn = blame_stats['churn']
+        context['churn'] = churn
+        raw_churn = blame_stats['raw_churn']
+        context['raw_churn'] = raw_churn
+
+        throughput = blame_stats['throughput']
+        context['throughput'] = throughput
+        raw_throughput = blame_stats['raw_throughput']
+        context['raw_throughput'] = raw_throughput
+        context['deletions'] = blame_stats['deletions']
+        context['lines'] = blame_stats['lines']
+        context['insertions'] = blame_stats['insertions']
+        context['net'] = blame_stats['net']
+
+        context['loc_per_day'] = context['lines'] / active_days if active_days > 0 else 0
+
+        context.update(get_badge_data(throughput, churn, self_churn, work_others, work_self))
+
+        context['impact'] = blame_stats['log_impact']
         return context

@@ -215,10 +215,12 @@ def get_dev_activity_chart(dev, repos):
     extra_serie4 = {
         "tooltip": {"y_start": "", "y_end": " commits"},
         "date_format": tooltip_date,
+        'interpolate': 'basis',
     }
     extra_serie5 = {
         "tooltip": {"y_start": "", "y_end": " filechanges"},
         "date_format": tooltip_date,
+        'interpolate': 'basis',
     }
     series_data = {
         'x': xdata,

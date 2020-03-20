@@ -18,10 +18,12 @@
 {% block table_title %}
     <i class="fas fa-users"></i>
     {% trans 'Developers' %}
+    {% if repo %}
         <small>
         {% trans 'for repository:' %}
-        <a href="#% url 'repository-detail' repository.id %}">{{ repository.name|lower }}</a>
+        <a href="{% url 'repository-detail' repo.id %}">{{ repo.name|lower }}</a>
         </small>
+    {% endif %}
 {% endblock %}
 {% block table_head %}
  <th class="text-align-center">{% trans 'Clas' %}</th>
@@ -244,26 +246,14 @@
             <td>
                  <div class="row">
                     <div class="col-md-2">
-                        {% if project %}
-                            <a href="{% url 'developer-profile' project.id author.author %}">
-                                <img src="{% gravatar_url author.author__email 32 %}" width="32" class="img-circle" onerror="this.src='{% static 'img/1.png' %}'">
-                            </a>
-                        {% else %}
-                            <a href="#% url 'full-developer-profile' author.author %}">
-                               <img src="{% gravatar_url author.author__email 32 %}" width="32" class="img-circle" onerror="this.src='{% static 'img/1.png' %}'">
-                            </a>
-                        {% endif %}
+                        <a href="{% url 'developer-profile' author.author %}">
+                           <img src="{% gravatar_url author.author__email 32 %}" width="32" class="img-circle" onerror="this.src='{% static 'img/1.png' %}'">
+                        </a>
                     </div>
                     <div class="col-md-10">
-                        {% if project %}
-                            <a href="{% url 'developer-profile' project.id author.author %}">
-                                {{ author.author__name }} <br><small> &lt;{{ author.author__email }}&gt;</small>
-                            </a>
-                        {% else %}
-                            <a href="#% url 'full-developer-profile' author.author %}">
-                                {{ author.author__name }} <br><small> &lt;{{ author.author__email }}&gt;</small>
-                            </a>
-                        {% endif %}
+                        <a href="{% url 'developer-profile' author.author %}">
+                            {{ author.author__name }} <br><small> &lt;{{ author.author__email }}&gt;</small>
+                        </a>
                     </div>
                 </div>
             </td>
