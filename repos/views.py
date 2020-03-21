@@ -89,6 +89,7 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
             .values('language', 'path__path', 'name', 'code')
         context['code'] = code
         context['languages'] = get_lang_participation_for_repo(self.object, self.branch)
+        context['lang_count'] = len(context['languages'])
 
         context['file_count'] = qs['count'] or 0
         context['loc'] = qs['loc'] or 0
