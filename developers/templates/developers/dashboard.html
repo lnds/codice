@@ -154,21 +154,32 @@ div.quadrant_tooltip {
     <li class="divider"></li>
     {% if repo %}
         <li>
-        <div class="top_action_button_div dropdown-toggle">
-            <a class="btn btn-info" href="{% url 'repo-devs-list' repo.id %}">
-                <i class="fas fa-users"></i> {% trans ' devs' %}
-            </a>
-        </div>
-        </li>
-            <li class="divider"></li>
-        <li>
             <div class="top_action_button_div dropdown-toggle">
                 <a class="btn btn-sm btn-default" href="{% url 'repository-detail' repo.id %}">
                     <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
                 </a>
             </div>
         </li>
+        <li class="divider"></li>
+
+        <li>
+        <div class="top_action_button_div dropdown-toggle">
+            <a class="btn btn-info" href="{% url 'repo-devs-list' repo.id %}">
+                <i class="fas fa-users"></i> {% trans ' developers' %}
+            </a>
+        </div>
+        </li>
+
     {% else %}
+        <li>
+            <div class="top_action_button_div dropdown-toggle">
+                <a class="btn btn-sm btn-default" href="{% url 'home' %}">
+                    <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+                </a>
+            </div>
+        </li>
+        <li class="divider"></li>
+
         <li>
         <div class="top_action_button_div dropdown-toggle">
             <a class="btn btn-info" href="{% url 'devs' %}">
@@ -178,7 +189,7 @@ div.quadrant_tooltip {
         </li>
 
     {% endif %}
-            <li class="divider"></li>
+    <li class="divider"></li>
 {% endblock %}
 {% block breadcrumb_path %}
     <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
