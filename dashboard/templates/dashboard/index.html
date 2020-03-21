@@ -60,7 +60,9 @@
                         {% icon_box 'col-md-3' 'far fa-calendar-alt text-warning' 'text-warning' min_date|timesince:max_date '' %}
                         {% big_text_box 'col-md-3' '' 'text-white' 'description' commits_in_last_week 'commits in last week' %}
                         {% big_text_box 'col-md-3' '' 'text-white' 'description' net_lines_in_last_week 'net loc in last week' %}
+                        <a href="{% url 'devs-dashboard' %}">
                          {% icon_box 'col-md-3' 'fas fa-chart-bar text-success' 'text-success' 'devs board' ''%}
+                        </a>
                     </div>
             </div>
           </div>

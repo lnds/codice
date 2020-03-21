@@ -92,7 +92,7 @@ class File(models.Model):
         return commits
 
     def calc_temporal_coupling(self, commits):
-        return self.get_coupled_files(commits).count()
+        return len(self.get_coupled_files(commits))
 
     def get_coupled_files(self, commits):
         shared_commits = {}

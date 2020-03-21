@@ -65,6 +65,9 @@
                 {% if chart.model == 'pieChart' %}
                     {% block pietooltip %}
                     {% endblock pietooltip %}
+                {% elif chart.model == 'multiBarHorizontalChart' %}
+                    {% block multiBarHorizontalChartTooltip %}
+                    {% endblock multiBarHorizontalChartTooltip %}
                 {% else %}
                     chart.tooltip.chartContainer('{{ chart.name }}'+'_parent');
                     chart.tooltip.contentGenerator(function(obj) {
@@ -79,6 +82,9 @@
             {% else %}
                 chart.tooltip.chartContainer('{{ chart.name }}'+'_parent');
                 chart.tooltip.contentGenerator(function(obj) {
+                  console.log("OBJ");
+                    console.log(obj);
+
                     var x = d3.time.format("{{ chart.charttooltip_dateformat }}")(new Date(parseInt(obj.point.x)));
                     var y = String(obj.point.y);
                     var key = String(obj.series[0].key);
