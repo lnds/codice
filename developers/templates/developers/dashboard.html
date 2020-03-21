@@ -1,10 +1,236 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-DASHBOARD
-</body>
-</html>
+{% extends 'codice/base_table.html' %}
+{% load static %}
+{% load i18n %}
+{% load gravatar %}
+{% load humanize %}
+{% load committer_stats %}
+{% load mathfilters %}
+{% load nvd3_tags %}
+{% load boxes %}
+{% block additional_head %}
+
+<style>
+.axis, .axis path {
+      fill: none;
+      stroke: #ACB849;
+}
+.nv-controlsWrap{display:none;}
+div.quadrant_tooltip {
+    position: absolute;
+    text-align: left;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    color: black;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+}
+</style>
+{% endblock %}
+{% block table_title %}{% trans 'Developers Dashboard' %}
+{% if repo %}
+    <small>
+    {% trans 'for repository:' %} <a href="{% url 'repository-detail' repo.id %}">{{ repo|lower }}</a>
+    </small>
+{% endif %}
+{% endblock %}
+{% block table %}
+    <div class="row">
+    </div>
+{% endblock table %}
+{% block additional_content_body %}
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="widget"  >
+                <header>
+                    <h4>{% trans 'Classification' %}</h4>
+                    <div class="widget-controls">
+                        <a title="Options" href="#"><i class="glyphicon glyphicon-cog"></i></a>
+                        <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
+                        <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+                        <a data-widgster="close" title="Close" href="#"><i class="glyphicon glyphicon-remove"></i></a>
+                    </div>
+                </header>
+                <div class="body no-margin" id="quadrant">
+                    <svg  id="quadrant-scatter" width="100" height="100"></svg>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="row">
+            <div class="col-lg-7">
+                <div class="widget">
+                    <header>
+                        <h4>{% trans 'Ownership' %}</h4>
+                        <div class="widget-controls">
+                            <a title="Options" href="#"><i class="glyphicon glyphicon-cog"></i></a>
+                            <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
+                            <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+                            <a data-widgster="close" title="Close" href="#"><i class="glyphicon glyphicon-remove"></i></a>
+                        </div>
+                    </header>
+                    <div class="body no-margin">
+                        <div class="row">
+                            <div class="col-md-12">
+                                {% include_container chartcontainer_pie 360 320 %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+               <div class="row">
+                  {% if project %}
+                  <a href="{% url 'project-devs-list' project.id %}">
+                  {% elif repo %}
+                  <a href="{% url 'repo-devs-list' repo.id %}">
+                  {% else %}<a href="{% url 'devs' %}">
+                  {% endif %}
+                    {% if dev_count == 1 %}
+                        {% icon_box 'col-md-12' 'fas fa-users text-info' 'text-info' dev_count|intcomma 'dev' %}
+                    {% else %}
+                        {% icon_box 'col-md-12' 'fas fa-users text-info' 'text-info' dev_count|intcomma 'devs' %}
+                    {% endif %}
+                    </a>
+               </div>
+               <div class="row">
+                   {% big_text_box 'col-md-12' 'far fa-commits ' '' '' commits_dev|floatformat:1 'commits/dev' %}
+               </div>
+                <div class="row">
+                   {% big_text_box 'col-md-12' 'far fa-commits ' '' '' locs_dev|floatformat:1 'locs/dev' %}
+               </div>
+            </div>
+
+        </div>
+            <div class="row">
+                <div class="col-lg-12">
+                     <div class="widget">
+                        <header>
+                            <h4>{% trans 'Churn & Throughput' %}</h4>
+                            <div class="widget-controls">
+                                <a title="Options" href="#"><i class="glyphicon glyphicon-cog"></i></a>
+                                <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
+                                <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+                                <a data-widgster="close" title="Close" href="#"><i class="glyphicon glyphicon-remove"></i></a>
+                            </div>
+                        </header>
+                        <div class="body no-margin">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    {% include_container chartcontainer_mbh 400 640 %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="widget">
+                <header>
+                    <h4>{% trans 'Knowledge Map' %}</h4>
+                    <div class="widget-controls">
+                        <a title="Options" href="#"><i class="glyphicon glyphicon-cog"></i></a>
+                        <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
+                        <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+                        <a data-widgster="close" title="Close" href="#"><i class="glyphicon glyphicon-remove"></i></a>
+                    </div>
+                </header>
+                <div class="body no-margin">
+                     <div class="row">
+                        <div id="kmap" style="height: 730px"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{%  endblock %}
+{% block top_actions %}
+    <li class="divider"></li>
+    {% if repo %}
+        <li>
+        <div class="top_action_button_div dropdown-toggle">
+            <a class="btn btn-info" href="{% url 'repo-devs-list' repo.id %}">
+                <i class="fas fa-users"></i> {% trans ' devs' %}
+            </a>
+        </div>
+        </li>
+            <li class="divider"></li>
+        <li>
+            <div class="top_action_button_div dropdown-toggle">
+                <a class="btn btn-sm btn-default" href="{% url 'repository-detail' repo.id %}">
+                    <i class="fa fa-arrow-circle-left"></i> {% trans 'back' %}
+                </a>
+            </div>
+        </li>
+    {% else %}
+        <li>
+        <div class="top_action_button_div dropdown-toggle">
+            <a class="btn btn-info" href="{% url 'devs' %}">
+                <i class="fas fa-users"></i> {% trans ' devs' %}
+            </a>
+        </div>
+        </li>
+
+    {% endif %}
+            <li class="divider"></li>
+{% endblock %}
+{% block breadcrumb_path %}
+    <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+    <span>{% trans 'devs board' %}</span>
+{% endblock %}
+{% block additional_javascript %}
+<script src="{% static 'lib/d3/d3.js' %}"></script>
+<script src="{% static 'lib/d3plus/d3plus.js' %}"></script>
+
+<script>
+var v_quadrant_data = [
+    {% for qd in quadrant_data %}
+        {
+            "developer": "{{ qd.developer}}",
+            "x":"{{qd.cx}}".replace(',', '.'),
+            "y": "{{qd.cy}}".replace(',', '.'),
+            "cx": "{{qd.cx}}".replace(',', '.'),
+            "cy": "{{qd.cy}}".replace(',', '.'),
+            "size": "{{qd.size}}".replace(',', '.'),
+            "weight1": "{{qd.weight1}}".replace(',', '.'),
+            "weight2": "{{qd.weight2}}".replace(',', '.'),
+            "developer_id": {{ qd.developer_id }}
+        },
+    {% endfor %}
+];
+</script>
+<script src="{% static 'graphs/quadrant.js' %}"></script>
+<script>
+var data = [
+    {%for k in knowledge%}
+        {id:"{{k.author__name}}", value: {{k.knowledge}} },
+    {%endfor%}
+];
+new d3plus.viz()
+    .container("#kmap")
+    .data(data)
+    .type("tree_map")
+     .id("id")
+     .size("value")
+    .labels({"align": "left", "valign": "top"})
+     .draw();
+
+</script>
+
+<link media="all" href="/static/lib/nvd3/build/nv.d3.min.css" type="text/css" rel="stylesheet" />
+<script src="/static/lib/nvd3/build/nv.d3.min.js" type="text/javascript" charset="utf-8"></script>
+
+
+
+
+     {% load_chart charttype_pie chartdata_pie chartcontainer_pie extra_pie %}
+    {% load_chart charttype_mbh chartdata_mbh chartcontainer_mbh extra_mbh %}
+
+
+{% endblock %}

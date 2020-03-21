@@ -334,7 +334,11 @@
     <li class="divider"></li>
         <li>
         <div class="top_action_button_div dropdown-toggle">
-            <a class="btn btn-success" href="# url 'devs-dashboard' %}">
+            {% if repo %}
+            <a class="btn btn-success" href="{% url 'devs-repo-dashboard' repo.id %}">
+            {% else %}
+            <a class="btn btn-success" href="{% url 'devs-dashboard' %}">
+            {% endif %}
                 <i class="fas fa-chart-bar"></i> {% trans 'devs dashboard' %}
             </a>
         </div>

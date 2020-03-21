@@ -15,7 +15,10 @@
         chart.color(d3.scale.{{ chart.color_category }}().range());
     {% endif %}
 
-    chart.tooltipContent(function(key, y, e, graph) {
+    chart.tooltip.contentGenerator(function(obj) {
+         var key = String(obj.series[0].key);
+         var x = obj.data.label;
+         var y = obj.data.value;
           var x = String(key);
               {{ chart.tooltip_condition_string }}
               tooltip_str = '<center><b>'+x+'</b></center>' + y;

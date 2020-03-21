@@ -8,3 +8,17 @@
 {{super()}}
 
 {% endblock body %}
+{% block multiBarHorizontalChartTooltip %}
+    console.log("ACA");
+    chart.tooltip.chartContainer('{{ chart.name }}'+'_parent');
+    chart.tooltip.contentGenerator(function(obj) {
+    console.log("OBJ");
+    console.log(obj);
+    var x = String(obj.data.x);
+    var y = String(obj.data.y);
+    var key = String(obj.series[0].key);
+    {{ chart.tooltip_condition_string }}
+    tooltip_str = '<center><b>'+key+'</b></center>' + y + ' {{ chart.tooltip_separator|default('at', True) }} ' + x;
+    return tooltip_str;
+    });
+{% endblock multiBarHorizontalChartTooltip %}

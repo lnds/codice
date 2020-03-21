@@ -282,7 +282,7 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 
 class DeveloperDashboard(DeveloperMixin, ListView):
     context_object_name = 'developer_list'
-    template_name = 'developer/dashboard.html'
+    template_name = 'developers/dashboard.html'
 
     def get_queryset(self):
         self.owner = self.request.user
