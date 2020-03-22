@@ -303,7 +303,11 @@
                     {{ author.log_impact|div:min_impact|floatformat:1 }}
                 {% endif %}
             </td>
-            <td class="text-align-right">{{ author.loc|div:total_blame|mul:100.0|floatformat:1 }}%</td>
+            <td class="text-align-right">
+                {% if total_blame %}
+                {{ author.loc|div:total_blame|mul:100.0|floatformat:1 }}%
+                {% endif %}
+            </td>
             <td class="text-align-right">{{ author.changes|intcomma }}</td>
             <td class="text-align-right">{{ author.commits|intcomma }}</td>
         </tr>

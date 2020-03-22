@@ -1,11 +1,8 @@
 import traceback
 from collections import defaultdict
 from pathlib import Path
-
-import numpy
 import pandas as pd
 import pygount
-from django.db.models import Max, F
 from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
 
@@ -91,8 +88,6 @@ class RepoAnalyzer(object):
             author = self.__get_author(author_email, commit.author.name)
             self.__process_commit(commit, author, branch)
             self.__get_or_create_blame(author, branch)
-            self.__process_files_hotspot_weight(branch)
-
         logger.info("END COMMIT HISTORY")
 
     def __process_fileknowledge(self, branch: Branch):
@@ -300,8 +295,6 @@ class RepoAnalyzer(object):
             fc, created = self.__process_file_change(commit, file, files[fn], git_commit)
             if file.exists and fc.change_type in ['A','M'] or fc.change_type == '':
                 self.__process_file_blame(fn, commit, file)
-            file.changes += 1
-            file.save(update_fields=["changes"])
 
     def __process_file_change(self, commit:Commit, file: File, fc, git_commit):
         ins = int(fc['insertions'])
@@ -452,12 +445,3 @@ class RepoAnalyzer(object):
         blame, created = FileBlame.objects.get_or_create(file=file, commit=commit, author=commit.author, loc=loc)
         return blame
 
-    def __process_files_hotspot_weight(self, branch: Branch):
-        max_file_changes = File.objects.filter(repository=self.repo, branch=branch)\
-                            .aggregate(max=Max('changes'))['max'] or 1
-        File.objects.filter(
-            repository=self.repo,
-            branch=branch
-        ).update(
-            hotspot_weight=F('changes') / float(max_file_changes)
-        )

@@ -141,8 +141,8 @@ def calc_hotspots_tree(repo, branch):
                 result.append(r)
         files = File.objects.filter(path=path, is_code=True)
         for f in files:
-            result.append({'size': f.code, 'name': f.name, 'weight': f.hotspot_weight, 'i': f.id,
-                           'changes': f.changes, 'size': f.code, 'children': []})
+            result.append({'size': f.code, 'name': f.name, 'weight': f.get_hotspot_weight, 'i': f.id,
+                           'changes': f.get_changes, 'size': f.code, 'children': []})
         if len(result) == 0:
             return None
         elif len(result) == 1:

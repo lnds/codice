@@ -36,7 +36,9 @@
                             <a  href="{% url 'repo-devs-list' repository.id %}" >
                             {% icon_box "col-md-3" "fas fa-users text-info" "description text-info" devs_count|intcomma 'devs' %}
                             </a>
+                            <a href="{% url 'file-list-repo' repository.id %}?from=repos" >
                             {% big_text_box 'col-md-3' 'fa fa-files-o' 'big-text text-white' 'description' file_count|intcomma 'files'%}
+                            </a>
                             {% big_text_box 'col-md-3' 'fas fa-stream text-success' 'big-text text-success' 'description' commit_count|intcomma 'commits' %}
                             {% big_text_box 'col-md-3' 'fas fa-edit' 'big-text text-primary' 'description text-primary' file_changes_count|intcomma 'changes' %}
                         </div>

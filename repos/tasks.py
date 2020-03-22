@@ -1,4 +1,7 @@
+import io
+import pstats
 import sys
+from pstats import SortKey
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
@@ -9,6 +12,7 @@ from git_interface.giturls import build_repo_url
 from analytics.analyzer import process_repo_objects
 from repos.models import Repository
 import git_interface.gitcmds as git
+import cProfile
 
 logger = get_task_logger(__name__)
 
@@ -31,7 +35,15 @@ def clone_remote_repository(owner_id: int, repo_id: int):
         repo.status = Repository.Status.CLONED
         repo.save()
 
-        process_repo_objects(repo)
+        with cProfile.Profile() as pr:
+            pr.runcall(process_repo_objects, repo)
+            s = io.StringIO()
+            sortby = SortKey.CUMULATIVE
+            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+            ps.print_stats()
+            with open('codice.process_repo.stat.txt', 'w+') as f:
+                f.write(s.getvalue())
+
         repo.status = Repository.Status.OK
         repo.save()
 

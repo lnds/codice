@@ -1,11 +1,10 @@
 from django.db import models
-from django.db.models import Count, F, Value
+from django.db.models import Count, Max
 from django.utils.functional import cached_property
 
 from commits.models import Commit
 from developers.models import Developer
 from repos.models import Repository, Branch
-
 
 
 class CouplingDegree:
@@ -18,6 +17,7 @@ class CouplingDegree:
 
     def __str__(self):
         return "{} {}".format(self.file, self.degree)
+
 
 class FilePath(models.Model):
     name = models.TextField(blank=True, null=True)
@@ -54,8 +54,6 @@ class File(models.Model):
     lines = models.IntegerField(default=0)
     coupled_files = models.IntegerField(default=0)
     soc = models.IntegerField(default=0)
-    changes = models.IntegerField(default=0)
-    hotspot_weight = models.FloatField(default=0.0)
 
     path = models.ForeignKey(FilePath, on_delete=models.CASCADE)
     repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
@@ -68,6 +66,22 @@ class File(models.Model):
     @cached_property
     def commits(self):
         return Commit.objects.filter(filechange__file=self).all()
+
+    @cached_property
+    def get_changes(self):
+        return FileChange.objects.filter(file=self).count()
+
+    @cached_property
+    def get_hotspot_weight(self):
+        return self.get_changes / self.max_file_changes
+
+    @cached_property
+    def max_file_changes(self):
+        return File.objects.filter(repository=self.repository, branch=self.branch).annotate(
+            changes=Count('filechange')
+        ).aggregate(
+            max=Max('changes')
+        )['max'] or 1
 
     @property
     def get_authors(self):

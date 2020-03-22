@@ -224,7 +224,8 @@ class DeveloperProfile(DeveloperMixin, DetailView):
         at = fc2['a']
         dt = fc2['d']
 
-        file_knowledge = (a+d) / (at+dt) if (at+dt) > 0 else 0.0
+
+        file_knowledge = (a+d) / (at+dt) if a and d and (at+dt) > 0 else 0.0
 
         context['file_knowledge'] = file_knowledge
 
@@ -254,7 +255,7 @@ class DeveloperProfile(DeveloperMixin, DetailView):
         context['extra_commit_acum'] = activity_chart['extra4']
 
         context['total_blame'] = self.total_blame
-        context['ownership'] = blame_stats['blame'] / self.total_blame
+        context['ownership'] = blame_stats['blame'] / self.total_blame if self.total_blame else 0
         context['blame'] = blame_stats['blame']
         context['commits'] = commit_set.distinct().order_by('-date')[0:self.commits_limit]
         context['work_others'] = work_others
