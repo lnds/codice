@@ -71,13 +71,12 @@ class File(models.Model):
     def get_changes(self):
         return FileChange.objects.filter(file=self).count()
 
-    @cached_property
-    def get_hotspot_weight(self):
-        return self.get_changes / self.max_file_changes
+    def get_hotspot_weight(self, max_file_changes):
+        return self.get_changes / max_file_changes
 
-    @cached_property
-    def max_file_changes(self):
-        return File.objects.filter(repository=self.repository, branch=self.branch).annotate(
+    @staticmethod
+    def max_file_changes(repo, branch):
+        return File.objects.filter(repository=repo, branch=branch).annotate(
             changes=Count('filechange')
         ).aggregate(
             max=Max('changes')

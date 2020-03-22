@@ -132,16 +132,14 @@ class RepositoryDelete(RepositoryMixin, CanAdminReposMixin, DeleteView):
 
 
 def calc_hotspots_tree(repo, branch):
+    max_file_changes = File.max_file_changes(repo, branch)
+
     def get_children(path):
         children = FilePath.objects.filter(parent=path, exists=True)
-        result = []
-        for child in children:
-            r = get_children(child)
-            if r:
-                result.append(r)
+        result = [i for i in [get_children(child) for child in children] if i]
         files = File.objects.filter(path=path, is_code=True)
         for f in files:
-            result.append({'size': f.code, 'name': f.name, 'weight': f.get_hotspot_weight, 'i': f.id,
+            result.append({'size': f.code, 'name': f.name, 'weight': f.get_hotspot_weight(max_file_changes), 'i': f.id,
                            'changes': f.get_changes, 'size': f.code, 'children': []})
         if len(result) == 0:
             return None
@@ -152,6 +150,7 @@ def calc_hotspots_tree(repo, branch):
     paths = FilePath.objects.filter(repository=repo, branch=branch, parent=None, exists=True).order_by('path')
     childrens = [{"name": p.repository.name, "children": [get_children(p)]} for p in paths]
     return {"name": "root", "children": childrens}
+
 
 def repository_hotspots_json(request, pk, branch_id):
     owner = request.user
