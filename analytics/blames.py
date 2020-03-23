@@ -1,7 +1,8 @@
 import numpy
 from django.db.models import Sum, Count
 from commits.models import Commit, CommitStatistic
-from developers.models import Blame
+from developers.models import Blame, Developer
+from repos.models import Repository, Branch
 
 
 def calc_total_blame(repository, branch):
@@ -15,7 +16,7 @@ def calc_total_blame(repository, branch):
 
 # see https://git-scm.com/docs/git-diff
 # see https://github.com/rbanks54/GitStats/blob/master/GitStats.Console/ImpactAnalyser.cs
-def update_blame_object(blame: Blame, dev, commits, total_blame, total_insertions, total_deletions):
+def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Branch, commits, total_blame, total_insertions, total_deletions):
     """update a blame object, useful for statistics or when an alias is updated"""
     commits_by_dev = [c for c in commits if c.author.id == dev.id]
     commits_by_dev.sort(key=lambda x: x.date, reverse=False)
@@ -153,33 +154,35 @@ def update_blame_object(blame: Blame, dev, commits, total_blame, total_insertion
     old_code_weighting = total_edited / total_lines if total_lines else 0.0
     base_score = 10.0 * total_files_changed + 3.0 * total_files_added + total_files_removed + total_interesting_lines
     impact = base_score + base_score * old_code_weighting
-    blame.impact = impact
-    blame.log_impact = numpy.ma.sqrt(impact)
-    blame.ownership = blame.loc / total_blame if total_blame > 0.0 else 0.0
-    blame.lines = lines
-    blame.insertions = insertions
-    blame.deletions = deletions
-    blame.add_self = add_self
-    blame.add_others = add_others
-    blame.del_self = del_self
-    blame.del_others = del_others
-    blame.net = net
-    dws = blame.add_self+blame.add_others+blame.del_self+blame.del_others
-    blame.work_self = (blame.add_self+blame.del_self) / dws if dws > 0.0 else 1.0
-    blame.work_others = 1.0 - blame.work_self
-    dst = (blame.add_self+blame.add_others+blame.del_others)
-    nst = (blame.add_self+blame.add_others+blame.del_others+blame.del_self)
-    blame.self_throughput = dst / nst if nst > 0 else 1.0
-    blame.self_churn = blame.del_self / nst if nst > 0 else 0.0
 
-    blame.net_avg = int(net / n) if n > 0 else 0
+    blame["impact"] = impact
+    blame["log_impact"] = numpy.ma.sqrt(impact)
+    blame["ownership"]= blame["loc"] / total_blame if total_blame > 0.0 else 0.0
+    blame["liness"] = lines
+    blame["insertions"] = insertions
+    blame["deletions"] = deletions
+    blame["add_self"] = add_self
+    blame["add_others"] = add_others
+    blame["del_self"] = del_self
+    blame["del_others"] = del_others
+    blame["net"]= net
+    dws = add_self+add_others+del_self+del_others
+    blame["work_self"] = (add_self+del_self) / dws if dws > 0.0 else 1.0
+    blame["work_others"] = 1.0 - blame["work_self"]
+    dst = (add_self+add_others+del_others)
+    nst = (add_self+add_others+del_others+del_self)
+    blame["self_throughput"] = dst / nst if nst > 0 else 1.0
+    blame["self_churn"] = del_self / nst if nst > 0 else 0.0
 
-    blame.raw_throughput = (blame.insertions+blame.deletions) / total_lines if total_lines > 0 else 0.0
-    blame.raw_churn = blame.deletions / total_lines if total_lines > 0 else 0.0
+    blame["net_avg"] = int(net / n) if n > 0 else 0
 
-    blame.churn = (blame.self_churn+numpy.ma.sqrt(blame.self_churn*blame.raw_churn)+blame.raw_churn)/3.0
-    blame.throughput = (blame.self_throughput+numpy.ma.sqrt(blame.self_throughput*blame.raw_throughput)
-                        + blame.raw_throughput)/3.0
-    blame.commits = commits
-    blame.changes = changes
-    blame.save()
+    blame["raw_throughput"] = (insertions+deletions) / total_lines if total_lines > 0 else 0.0
+    blame["raw_churn"] = deletions / total_lines if total_lines > 0 else 0.0
+
+    blame["churn"] = (blame["self_churn"]+numpy.ma.sqrt(blame["self_churn"]*blame["raw_churn"])+blame["raw_churn"])/3.0
+    blame["throughput"] = (blame["self_throughput"]
+                           +numpy.ma.sqrt(blame["self_throughput"]*blame["raw_throughput"])
+                           + blame["raw_throughput"])/3.0
+    blame["commits"] = commits
+    blame["changes"] = changes
+    Blame.objects.update_or_create(blame, author=dev, repository=repo, branch=branch)

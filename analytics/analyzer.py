@@ -3,6 +3,7 @@ from collections import defaultdict
 from pathlib import Path
 import pandas as pd
 import pygount
+from django.forms import model_to_dict
 from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
 
@@ -233,7 +234,8 @@ class RepoAnalyzer(object):
                 repository=self.repo,
                 author=blame.author
             ).order_by("date")
-            update_blame_object(blame, blame.author, commits, total_blame, total_insertions, total_deletions)
+            update_blame_object(model_to_dict(blame, fields=['loc']),
+                                blame.author, self.repo, branch, commits, total_blame, total_insertions, total_deletions)
 
     def __get_author(self, email, name):
         cache_key = (email, self.owner)
@@ -322,64 +324,66 @@ class RepoAnalyzer(object):
     def __process_file(self, filename, branch):
         pkey = str(Path(self.repo.base_directory) / Path(filename))
         key = pkey + '@' + branch.name
-        if key not in self.file_cache:
-            p = Path(filename)
-            parent = p.parent
-            name = p.name
-            if parent == name:
-                parent = ''
-            file_path = self.__get_filepath(branch, parent)
-            try:
-                path = Path(pkey)
-                exists = path.is_file()
-                if exists:
-                    analysis = None
-                    try:
-                        analysis = pygount.source_analysis(pkey, self.repo.name)
-                    except Exception as e:
-                        logger.info('error on {}'.format(pkey))
-                        tb = traceback.format_exc(e)
-                        logger.info(tb)
+        if key in self.file_cache:
+            return self.file_cache[key]
 
-                    empty = analysis.state == SourceState.empty.name
-                    binary = analysis.state == SourceState.binary.name
-                    indent_complexity = calculate_complexity_in(pkey) if not empty and not binary else 0
-                    is_code = (not binary) and (not empty) and language_is_code(analysis.language)
-                    lines = 0
-                    if not binary:
-                        encoding = detect_encoding(path)
-                        with open(path, "r", newline='', encoding=encoding, errors='ignore') as fd:
-                            lines = sum(1 for _ in fd)
+        p = Path(filename)
+        parent = p.parent
+        name = p.name
+        if parent == name:
+            parent = ''
+        file_path = self.__get_filepath(branch, parent)
+        try:
+            path = Path(pkey)
+            exists = path.is_file()
+            if exists:
+                analysis = None
+                try:
+                    analysis = pygount.source_analysis(pkey, self.repo.name)
+                except Exception as e:
+                    logger.info('error on {}'.format(pkey))
+                    tb = traceback.format_exc(e)
+                    logger.info(tb)
 
-                    file, created = File.objects.get_or_create(
-                        filename=filename,
-                        repository=self.repo,
-                        branch=branch,
-                        defaults=dict(
-                            path=file_path,
-                            name=name,
-                            language=analysis.language,
-                            code=analysis.code,
-                            doc=analysis.documentation,
-                            blanks=analysis.empty,
-                            empty=empty,
-                            strings=analysis.string,
-                            binary=binary,
-                            exists=True,
-                            is_code=is_code,
-                            indent_complexity=indent_complexity,
-                            lines=lines
-                        )
+                empty = analysis.state == SourceState.empty.name
+                binary = analysis.state == SourceState.binary.name
+                indent_complexity = calculate_complexity_in(pkey) if not empty and not binary else 0
+                is_code = (not binary) and (not empty) and language_is_code(analysis.language)
+                lines = 0
+                if not binary:
+                    encoding = detect_encoding(path)
+                    with open(path, "r", newline='', encoding=encoding, errors='ignore') as fd:
+                        lines = sum(1 for _ in fd)
+
+                file, created = File.objects.get_or_create(
+                    filename=filename,
+                    repository=self.repo,
+                    branch=branch,
+                    defaults=dict(
+                        path=file_path,
+                        name=name,
+                        language=analysis.language,
+                        code=analysis.code,
+                        doc=analysis.documentation,
+                        blanks=analysis.empty,
+                        empty=empty,
+                        strings=analysis.string,
+                        binary=binary,
+                        exists=True,
+                        is_code=is_code,
+                        indent_complexity=indent_complexity,
+                        lines=lines
                     )
-                    self.file_cache[key] = file
-                else:
-                    file, created = self.__get_or_create_file(filename, branch, file_path, name)
-                    self.file_cache[key] = file
-            except Exception as e:
-                tb = traceback.format_exc(e)
-                logger.info(tb)
+                )
+                self.file_cache[key] = file
+            else:
                 file, created = self.__get_or_create_file(filename, branch, file_path, name)
                 self.file_cache[key] = file
+        except Exception as e:
+            tb = traceback.format_exc(e)
+            logger.info(tb)
+            file, created = self.__get_or_create_file(filename, branch, file_path, name)
+            self.file_cache[key] = file
 
         return self.file_cache[key]
 
