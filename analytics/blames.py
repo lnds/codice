@@ -5,18 +5,17 @@ from developers.models import Blame, Developer
 from repos.models import Repository, Branch
 
 
-def calc_total_blame(repository, branch):
+def calc_total_ins_and_dels(repository, branch):
     """return the total blame for a repository"""
-    blames = Blame.objects.filter(repository=repository, branch=branch)\
-        .aggregate(total=Sum('loc'))
     commits = Commit.objects.filter(repository=repository, branch=branch)\
         .aggregate(insertions=Sum('insertions'), deletions=Sum('deletions'))
-    return blames['total'], commits['insertions'], commits['deletions']
+    return commits['insertions'], commits['deletions']
 
 
 # see https://git-scm.com/docs/git-diff
 # see https://github.com/rbanks54/GitStats/blob/master/GitStats.Console/ImpactAnalyser.cs
-def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Branch, commits, total_blame, total_insertions, total_deletions):
+def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Branch, commits,
+                        total_blame, total_insertions, total_deletions):
     """update a blame object, useful for statistics or when an alias is updated"""
     commits_by_dev = [c for c in commits if c.author.id == dev.id]
     commits_by_dev.sort(key=lambda x: x.date, reverse=False)
@@ -158,7 +157,7 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
     blame["impact"] = impact
     blame["log_impact"] = numpy.ma.sqrt(impact)
     blame["ownership"]= blame["loc"] / total_blame if total_blame > 0.0 else 0.0
-    blame["liness"] = lines
+    blame["lines"] = lines
     blame["insertions"] = insertions
     blame["deletions"] = deletions
     blame["add_self"] = add_self
@@ -185,4 +184,5 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
                            + blame["raw_throughput"])/3.0
     blame["commits"] = commits
     blame["changes"] = changes
-    Blame.objects.update_or_create(blame, author=dev, repository=repo, branch=branch)
+    blame, created = Blame.objects.update_or_create(defaults=blame, author=dev, repository=repo, branch=branch)
+    return blame

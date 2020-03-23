@@ -3,11 +3,10 @@ from collections import defaultdict
 from pathlib import Path
 import pandas as pd
 import pygount
-from django.forms import model_to_dict
 from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
 
-from analytics.blames import calc_total_blame, update_blame_object
+from analytics.blames import update_blame_object, calc_total_ins_and_dels
 from authentication.models import User
 from commits.models import Commit, CommitBlame
 from developers.models import Developer, Blame
@@ -46,6 +45,8 @@ class RepoAnalyzer(object):
         self.commit_cache = dict()
         self.blames_cache = dict()
 
+        self.files_adds = dict()
+
         rbts = self.repo.branches_to_track.strip()
         if rbts == '':
             self.remote_branches_to_track = [self.repo.default_branch if self.repo.default_branch else 'master']
@@ -57,6 +58,7 @@ class RepoAnalyzer(object):
     def process(self):
         self.repo.status = Repository.Status.ANALYZING
         self.repo.save()
+        self.developer_cache = dict()
         for branch in self.remote_branches_to_track:
             if self.repo.default_branch == '':
                 self.repo.default_branch = branch
@@ -88,7 +90,6 @@ class RepoAnalyzer(object):
             author_email = commit.author.email
             author = self.__get_author(author_email, commit.author.name)
             self.__process_commit(commit, author, branch)
-            self.__get_or_create_blame(author, branch)
         logger.info("END COMMIT HISTORY")
 
     def __process_fileknowledge(self, branch: Branch):
@@ -207,15 +208,16 @@ class RepoAnalyzer(object):
             file.save()
 
     def __process_blames(self, branch: Branch):
-        blames = Blame.objects.filter(repository=self.repo, branch=branch)
-        for blame in blames:
+        locs = dict()
+        total_sum_loc = 0
+        for author in self.developer_cache.values():
             commits = Commit.objects.filter(
                 branch=branch,
                 repository=self.repo,
-                author=blame.author
+                author=author
             ).order_by("date")
 
-            file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits)
+            file_blames = FileBlame.objects.filter(author=author, commit__in=commits)
             fd = dict()
             for fb in file_blames:
                 if not fb.file in fd:
@@ -224,18 +226,19 @@ class RepoAnalyzer(object):
                     (loc, date) = fd[fb.file]
                     if date < fb.commit.date:
                         fd[fb.file] = (fb.loc, fb.commit.date)
-            blame.loc = sum([loc for (loc, d) in fd.values()])
-            blame.save()
+            sum_loc = sum([loc for (loc, d) in fd.values()])
+            locs[author] = sum_loc
+            total_sum_loc += sum_loc
 
-        (total_blame, total_insertions, total_deletions) = calc_total_blame(self.repo, branch)
-        for blame in blames:
+        (total_insertions, total_deletions) = calc_total_ins_and_dels(self.repo, branch)
+        for author in locs.keys():
             commits = Commit.objects.filter(
                 branch=branch,
                 repository=self.repo,
-                author=blame.author
+                author=author
             ).order_by("date")
-            update_blame_object(model_to_dict(blame, fields=['loc']),
-                                blame.author, self.repo, branch, commits, total_blame, total_insertions, total_deletions)
+            update_blame_object({"loc":float(locs[author])},
+                                author, self.repo, branch, commits, total_sum_loc, total_insertions, total_deletions)
 
     def __get_author(self, email, name):
         cache_key = (email, self.owner)
@@ -245,13 +248,6 @@ class RepoAnalyzer(object):
             dev.repos.add(self.repo)
             return dev
         return self.developer_cache[cache_key]
-
-    def __get_or_create_blame(self, author: Developer, branch: Branch):
-        if author not in self.blames_cache:
-            blame, created = Blame.objects.get_or_create(author=author, repository=self.repo, branch=branch,
-                                                         defaults={"loc": 0})
-            self.blames_cache[author] = blame
-        return self.blames_cache[author]
 
     def __process_commit(self, git_commit, author, branch):
         hexsha = str(git_commit.hexsha)
@@ -292,16 +288,21 @@ class RepoAnalyzer(object):
         return self.commit_cache[cache_key]
 
     def __process_files(self, commit, branch, files, git_commit):
+        ct = dict()
+        for parent in git_commit.parents:
+            for change in parent.diff(git_commit):
+                ct[change.a_blob.path if change.a_blob else change.b_blob.path] = change.change_type
+
         for fn in files.keys():
             file = self.__process_file(fn, branch)
-            fc, created = self.__process_file_change(commit, file, files[fn], git_commit)
+            fc, created = self.__process_file_change(commit, file, files[fn], ct[fn] if fn in ct else '')
+
             if file.exists and fc.change_type in ['A','M'] or fc.change_type == '':
                 self.__process_file_blame(fn, commit, file)
 
-    def __process_file_change(self, commit:Commit, file: File, fc, git_commit):
+    def __process_file_change(self, commit:Commit, file: File, fc, change_type):
         ins = int(fc['insertions'])
         dels = int(fc['deletions'])
-        change_type = self.__det_change_status(git_commit, git_commit.parents)
         return FileChange.objects.get_or_create(
             file=file,
             commit=commit,
@@ -313,13 +314,6 @@ class RepoAnalyzer(object):
                 change_type=change_type
             )
         )
-
-    @staticmethod
-    def __det_change_status(commit, parents):
-        for parent in parents:
-            for change in parent.diff(commit):
-                return change.change_type
-        return ""
 
     def __process_file(self, filename, branch):
         pkey = str(Path(self.repo.base_directory) / Path(filename))
