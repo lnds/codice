@@ -77,6 +77,7 @@ class RepoAnalyzer(object):
         logger.info('BRANCH %s CREATED: %s', branch_name, created)
 
         self.__process_commits(branch)
+        self.__process_file_blames(branch)
         self.__process_fileknowledge(branch)
         self.__process_blames(branch)
         return branch
@@ -301,10 +302,7 @@ class RepoAnalyzer(object):
 
         for fn in files.keys():
             file = self.__process_file(fn, branch)
-            fc, created = self.__process_file_change(commit, file, files[fn], ct[fn] if fn in ct else '')
-
-            if file.exists and fc.change_type in ['A','M'] or fc.change_type == '':
-                self.__process_file_blame(fn, commit, file)
+            self.__process_file_change(commit, file, files[fn], ct[fn] if fn in ct else '')
 
     def __process_file_change(self, commit:Commit, file: File, fc, change_type):
         ins = int(fc['insertions'])
@@ -440,16 +438,40 @@ class RepoAnalyzer(object):
 
         return self.filepath_cache[cache_key]
 
-    def __process_file_blame(self, filename, commit: Commit, file: File):
-        if not file.exists:
+    def __process_file_blames(self, branch):
+        logger.info("BEGIN PROCESS BLAMES")
+        files = File.objects.filter(repository=self.repo, branch=branch)
+        for f in files:
+            self.__process_file_blame(f)
+        logger.info("END PROCESS BLAMES")
+
+    def __process_file_blame(self, file: File):
+        if not file.exists or not file.is_code:
             return None
-        blames = self.git_repo.blame(commit.hexsha, filename)
+        blames = self.git_repo.blame('HEAD', file.filename)
         if not blames:
             return None
-        loc = 0
+        locs_dict = dict()
+        commits_dict = dict()
         for b in blames:
-            if b[0].author.email == commit.author.email:
-                loc = loc + len(b[1])
-        blame, created = FileBlame.objects.get_or_create(file=file, commit=commit, author=commit.author, loc=loc)
-        return blame
+            try:
+                commit = Commit.objects.get(hexsha=b[0].hexsha)
+                if commit.author in commits_dict:
+                    commits_dict[commit.author].append(commit)
+                else:
+                    commits_dict[commit.author] = [commit]
+                key = (commit.author.id, commit.id)
+                if key in locs_dict:
+                    locs_dict[key] += len(b[1])
+                else:
+                    locs_dict[key] = len(b[1]) or 0
+
+            except Commit.DoesNotExist:
+                print("commit doesn't exist: {}".format(b[0].hexsha))
+                pass
+
+        for author in commits_dict.keys():
+            for commit in commits_dict[author]:
+                FileBlame.objects.get_or_create(file=file, commit=commit, author=author, loc=locs_dict[(author.id, commit.id)])
+
 

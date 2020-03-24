@@ -7,7 +7,6 @@ from commits.models import Commit
 from developers.services import get_developer_blame_summary
 from files.models import FileChange
 
-
 def get_devs_blame_data(devs, repos, branches, total_blame):
     blames = []
     for dev in devs:
@@ -68,16 +67,22 @@ def get_devs_owner_pie_chart(blames):
     return result
 
 
-churn_factor = 0.5
-throughput_factor = 0.5
+churn_factor = 0.05
+throughput_factor = 0.95
 
 
-def calc_cx(churn:int, work_others:int):
-    return churn*churn_factor + work_others*(1.0-churn_factor)
+def calc_cx(work_self:int, work_others:int):
+    print("work self: {} work others: {}".format(work_self, work_others))
+    r = 1.0 - (work_self - work_others)
+    r = r / 2.0
+    print("cx = {}".format(r))
+    return r
 
-
-def calc_cy(throughput, work_self):
-    return throughput*throughput_factor + work_self*(1.0-throughput_factor)
+def calc_cy(throughput, churn):
+  #  print("t = {}, ch = {}".format(throughput, churn))
+    r = throughput_factor*throughput - churn_factor*churn
+    #print("cy = {}".format(r))
+    return r
 
 
 def get_devs_quadrant_chart(blames):
@@ -85,8 +90,8 @@ def get_devs_quadrant_chart(blames):
 
     for blame_stat in blames:
         dev = blame_stat['dev']
-        cx = calc_cx(blame_stat['churn'], blame_stat['work_others'])
-        cy = calc_cy(blame_stat['throughput'], blame_stat['work_self'])
+        cx = calc_cx(blame_stat['work_self'], blame_stat['work_others'])
+        cy = calc_cy(blame_stat['throughput'], blame_stat['churn'])
         size = blame_stat['log_impact']
         weight1 = blame_stat['throughput']
         weight2 = blame_stat['churn']
