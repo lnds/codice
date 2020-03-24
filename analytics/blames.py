@@ -1,6 +1,6 @@
 import numpy
 from django.db.models import Sum, Count
-from commits.models import Commit, CommitStatistic
+from commits.models import Commit
 from developers.models import Blame, Developer
 from repos.models import Repository, Branch
 
@@ -112,40 +112,7 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
 
         work_self = (sum_add_self+sum_del_self) / dsc if dsc > 0 else 1.0
         work_others = 1.0 - work_self
-        try:
-            cs = CommitStatistic.objects.get(commit=com)
-            cs.raw_throughput = raw_throughput
-            cs.raw_churn = raw_churn
-            cs.impact = impact
-            cs.log_impact = log_impact
-            cs.acum_lines = lines
-            cs.acum_insertions = insertions
-            cs.acum_deletions = deletions
-            cs.blame_loc = bloc
-            cs.net_result = net
-            cs.add_self = sum_add_self
-            cs.del_self = sum_del_self
-            cs.add_others = sum_add_others
-            cs.del_others = sum_del_others
-            cs.self_churn = self_churn
-            cs.self_throughput = self_throughput
-            cs.work_self = work_self
-            cs.work_others = work_others
-            cs.churn = (0.3*cs.raw_churn + 0.7*cs.self_churn)
-            cs.throughput = (0.3*cs.raw_throughput + 0.7*cs.self_throughput)
 
-        except CommitStatistic.DoesNotExist:
-            CommitStatistic.objects.create(commit=com, date=com.date, ownership=ownership, changes=nc,
-                                           raw_throughput=raw_throughput, raw_churn=raw_churn, impact=impact,
-                                           log_impact=log_impact, acum_lines=lines, acum_insertions=insertions,
-                                           acum_deletions=deletions, blame_loc=bloc, net_result=net,
-                                           add_self=sum_add_self, del_self=sum_del_self, add_others=sum_add_others,
-                                           del_others=sum_del_others, self_churn=self_churn,
-                                           self_throughput=self_throughput,
-                                           churn=(raw_factor*raw_churn + self_factor*self_churn),
-                                           throughput=(raw_factor*raw_throughput+self_factor*self_throughput),
-                                           work_self=work_self,
-                                           work_others=work_others)
 
     total_lines = total_insertions + total_deletions
     old_code_weighting = total_edited / total_lines if total_lines else 0.0

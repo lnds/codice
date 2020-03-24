@@ -92,6 +92,8 @@ class RepoAnalyzer(object):
         logger.info("END COMMIT HISTORY")
 
     def __process_fileknowledge(self, branch: Branch):
+        logger.info("FILE KNOWLEDGE PROCESSING")
+
         index = [f.id for f in self.file_cache.values()]
 
         authors_id = set([a.id for a in self.developer_cache.values()])
@@ -102,6 +104,10 @@ class RepoAnalyzer(object):
         sum_file_knowledge_dict = defaultdict(int)
 
         file_owners = dict()
+        owners_cache = dict()
+        for d in self.developer_cache.values():
+            owners_cache[d.id] = d
+
         commits = sorted(self.commit_cache.values(), key=lambda c: c.date)
         for c in commits:
             if c.is_merge:
@@ -202,12 +208,10 @@ class RepoAnalyzer(object):
 
             if file.id in file_owners:
                 knowledge_owner_id = file_owners[file.id]
-                try:
-                    file.knowledge_owner = Developer.objects.get(pk=knowledge_owner_id)
-                except Developer.DoesNotExist:
-                    pass
-
+                if knowledge_owner_id in owners_cache:
+                    file.knowledge_owner = owners_cache[knowledge_owner_id]
             file.save()
+        logger.info("END FILE OWNERS")
 
     def __process_blames(self, branch: Branch):
         locs = dict()
@@ -348,7 +352,9 @@ class RepoAnalyzer(object):
                 indent_complexity = calculate_complexity_in(pkey) if not empty and not binary else 0
                 is_code = (not binary) and (not empty) and language_is_code(analysis.language)
                 lines = 0
-                if not binary:
+                if is_code:
+                    lines = analysis.code + analysis.documentation + analysis.empty
+                elif not binary:
                     encoding = detect_encoding(path)
                     with open(path, "r", newline='', encoding=encoding, errors='ignore') as fd:
                         lines = sum(1 for _ in fd)
