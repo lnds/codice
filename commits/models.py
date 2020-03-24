@@ -24,6 +24,9 @@ class Commit(models.Model):
 
     class Meta:
         db_table = 'codice_commit'
+        indexes = [
+            models.Index(fields=['branch', 'repository', 'author'])
+        ]
 
     def __str__(self):
         return "{} @ {}: {}".format(self.hexsha[-6:], self.date,  self.message[:20])
@@ -73,3 +76,7 @@ class CommitBlame(models.Model):
 
     class Meta:
         db_table = 'codice_commitblame'
+
+        indexes = [
+            models.Index(fields=['commit'])
+        ]

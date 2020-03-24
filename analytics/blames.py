@@ -17,7 +17,7 @@ def calc_total_ins_and_dels(repository, branch):
 def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Branch, commits,
                         total_blame, total_insertions, total_deletions):
     """update a blame object, useful for statistics or when an alias is updated"""
-    commits_by_dev = [c for c in commits if c.author.id == dev.id]
+    commits_by_dev = [c for c in commits if c.author.id == dev.id and not c.is_merge]
     commits_by_dev.sort(key=lambda x: x.date, reverse=False)
     lines = 0
     insertions = 0
@@ -41,8 +41,6 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
     self_factor = 0.6
     for com in commits_by_dev:
         commits += 1
-        if com.is_merge:
-            continue
         n += 1
         files_changed = 0
         files_added = 0
@@ -52,17 +50,17 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
         removed = 0
         for fc in com.filechange_set.all():
             if fc.change_type == 'A' or fc.change_type == 'C':
-                added = fc.insertions
+                added += fc.insertions
                 files_added += 1
             elif fc.change_type == 'M':
                 edited += fc.insertions + fc.deletions
                 files_changed += 1
             elif fc.change_type == 'D':
-                removed = fc.deletions
+                removed += fc.deletions
                 files_removed += 1
             else:
-                removed = fc.deletions
-                added = fc.insertions
+                removed += fc.deletions
+                added += fc.insertions
             changes += 1
 
         total_edited += edited

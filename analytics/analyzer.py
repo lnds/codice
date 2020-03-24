@@ -43,7 +43,6 @@ class RepoAnalyzer(object):
         self.git_repo = GitRepository(self.repo.base_directory)
         self.developer_cache = dict()
         self.commit_cache = dict()
-        self.blames_cache = dict()
 
         self.files_adds = dict()
 
@@ -93,15 +92,18 @@ class RepoAnalyzer(object):
         logger.info("END COMMIT HISTORY")
 
     def __process_fileknowledge(self, branch: Branch):
-        index = list(File.objects.filter(repository=self.repo, branch=branch).values_list('id', flat=True))
-        authors_id = set(Commit.objects.order_by('author').values_list('author', flat=True).distinct())
+        index = [f.id for f in self.file_cache.values()]
+
+        authors_id = set([a.id for a in self.developer_cache.values()])
+
         df = pd.DataFrame(0, index=index, columns=authors_id)
 
         file_knowledge_dict = dict()
         sum_file_knowledge_dict = defaultdict(int)
 
         file_owners = dict()
-        for c in Commit.objects.filter(branch=branch, repository=self.repo).select_related("author").order_by("date"):
+        commits = sorted(self.commit_cache.values(), key=lambda c: c.date)
+        for c in commits:
             if c.is_merge:
                 continue
             author = c.author
@@ -282,8 +284,8 @@ class RepoAnalyzer(object):
             )
 
             self.commit_cache[cache_key] = commit
-
-            self.__process_files(commit, branch, git_commit.stats.files, git_commit)
+            if not is_merge:
+                self.__process_files(commit, branch, git_commit.stats.files, git_commit)
 
         return self.commit_cache[cache_key]
 
@@ -306,6 +308,8 @@ class RepoAnalyzer(object):
         return FileChange.objects.get_or_create(
             file=file,
             commit=commit,
+            date=commit.date,
+            author=commit.author,
             defaults=dict(
                 repository=commit.repository,
                 branch=commit.branch,

@@ -63,6 +63,11 @@ class File(models.Model):
     class Meta:
         db_table = 'codice_file'
 
+        indexes = [
+            models.Index(fields=['path', 'is_code']),
+        ]
+        unique_together = (('filename', 'repository', 'branch'),)
+
     @cached_property
     def commits(self):
         return Commit.objects.filter(filechange__file=self).all()
@@ -158,6 +163,8 @@ class FileChange(models.Model):
     deletions = models.IntegerField()
     change_type = models.TextField(max_length=1, blank=True)
     file = models.ForeignKey(File, on_delete=models.CASCADE)
+    date = models.DateTimeField()
+    author = models.ForeignKey(Developer, on_delete=models.CASCADE)
     commit = models.ForeignKey(Commit, on_delete=models.CASCADE)
     repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
@@ -180,6 +187,10 @@ class FileBlame(models.Model):
     class Meta:
         db_table = 'codice_fileblame'
         unique_together = (('file', 'commit'),)
+        indexes = [
+            models.Index(fields=['author']),
+            models.Index(fields=['commit']),
+        ]
 
 
 class FileKnowledge(models.Model):

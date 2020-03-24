@@ -4,7 +4,7 @@ from django.db.models.functions import TruncDate
 from django.forms import model_to_dict
 
 from analytics.blames import update_blame_object
-from commits.models import CommitBlame, Commit, CommitStatistic
+from commits.models import Commit
 from developers.models import Blame
 from files.models import FileChange
 
