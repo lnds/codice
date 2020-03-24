@@ -14,7 +14,7 @@ def calc_total_ins_and_dels(repository, branch):
 
 # see https://git-scm.com/docs/git-diff
 # see https://github.com/rbanks54/GitStats/blob/master/GitStats.Console/ImpactAnalyser.cs
-def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Branch, commits,
+def update_blame_object(blame: dict, dev: Developer, repo: Repository, branch: Branch, commits,
                         total_blame, total_insertions, total_deletions):
     """update a blame object, useful for statistics or when an alias is updated"""
     commits_by_dev = [c for c in commits if c.author.id == dev.id and not c.is_merge]
@@ -37,8 +37,6 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
     total_removed = 0
     total_edited = 0
     n = 0
-    raw_factor = 0.4
-    self_factor = 0.6
     for com in commits_by_dev:
         commits += 1
         n += 1
@@ -66,11 +64,7 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
         total_edited += edited
         total_added += added
         total_removed += removed
-        total_lines = edited + added + removed
         interesting_lines = edited + added
-        old_code_weighting = edited / total_lines if total_lines else 0.0
-        base_score = 10.0 * files_changed + 3.0 * files_added + files_removed + interesting_lines
-        impact = base_score + base_score * old_code_weighting
 
         total_files_changed += files_changed
         total_files_removed += files_removed
@@ -80,19 +74,6 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
         insertions = insertions + com.insertions
         deletions = deletions + com.deletions
         net = net + com.net
-        commit_total_blame = com.fileblame_set.aggregate(total=Sum('loc'))['total'] or 0
-        nc = com.filechange_set.count()
-        bloc = com.fileblame_set.filter(author=com.author).aggregate(loc=Count('loc'))['loc'] or 0
-        delta_loc = 0
-        delta_ins = 0
-        if com.insertions > bloc:
-            delta_ins = com.insertions - bloc
-
-        deno = com.insertions + bloc
-        raw_churn = (delta_loc + delta_ins) / deno if deno else 0
-        log_impact = numpy.ma.sqrt(impact) if impact > 0.0 else 0.0
-        ownership = bloc / commit_total_blame if commit_total_blame else 0.0
-        raw_throughput = abs(com.net) / com.lines if com.lines else 1.0
 
         rcb = com.commitblame_set.aggregate(sum_add_self=Sum('add_self'), sum_add_others=Sum('add_others'),
                                             sum_del_self=Sum('del_self'), sum_del_others=Sum('del_others'))
@@ -105,15 +86,6 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
         del_self += sum_del_self
         del_others += sum_del_others
 
-        dsc = sum_add_self+sum_add_others+sum_del_others+sum_del_self
-        nsc = sum_add_self+sum_add_others+sum_del_others
-        self_throughput = nsc / dsc if dsc else 1.0
-        self_churn = sum_del_self / dsc if dsc else 0.0
-
-        work_self = (sum_add_self+sum_del_self) / dsc if dsc > 0 else 1.0
-        work_others = 1.0 - work_self
-
-
     total_lines = total_insertions + total_deletions
     old_code_weighting = total_edited / total_lines if total_lines else 0.0
     base_score = 10.0 * total_files_changed + 3.0 * total_files_added + total_files_removed + total_interesting_lines
@@ -121,7 +93,7 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
 
     blame["impact"] = impact
     blame["log_impact"] = numpy.ma.sqrt(impact)
-    blame["ownership"]= blame["loc"] / total_blame if total_blame > 0.0 else 0.0
+    blame["ownership"] = blame["loc"] / total_blame if total_blame > 0.0 else 0.0
     blame["lines"] = lines
     blame["insertions"] = insertions
     blame["deletions"] = deletions
@@ -129,7 +101,7 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
     blame["add_others"] = add_others
     blame["del_self"] = del_self
     blame["del_others"] = del_others
-    blame["net"]= net
+    blame["net"] = net
     dws = add_self+add_others+del_self+del_others
     blame["work_self"] = (add_self+del_self) / dws if dws > 0.0 else 1.0
     blame["work_others"] = 1.0 - blame["work_self"]
@@ -145,7 +117,7 @@ def update_blame_object(blame: dict, dev:Developer, repo:Repository, branch:Bran
 
     blame["churn"] = (blame["self_churn"]+numpy.ma.sqrt(blame["self_churn"]*blame["raw_churn"])+blame["raw_churn"])/3.0
     blame["throughput"] = (blame["self_throughput"]
-                           +numpy.ma.sqrt(blame["self_throughput"]*blame["raw_throughput"])
+                           + numpy.ma.sqrt(blame["self_throughput"]*blame["raw_throughput"])
                            + blame["raw_throughput"])/3.0
     blame["commits"] = commits
     blame["changes"] = changes

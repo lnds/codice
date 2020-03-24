@@ -32,7 +32,6 @@ class Commit(models.Model):
         return "{} @ {}: {}".format(self.hexsha[-6:], self.date,  self.message[:20])
 
 
-
 class CommitBlame(models.Model):
     loc = models.IntegerField()
     add_self = models.IntegerField(default=0)

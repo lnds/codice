@@ -57,7 +57,7 @@ class FileList(FileMixin, ListView):
             query = File.objects.filter(language=self.filter_lang, is_code=True,
                                         repository__in=self.repos, branch__in=self.branches) \
                 .annotate(authors=Count('filechange__commit__author', distinct=True)) \
-                .annotate(changes=Count('filechange'), distinct=True)
+                .annotate(changes=Count('filechange', distinct=True))
         else:
             query = File.objects.filter(repository__in=self.repos, branch__in=self.branches, is_code=True) \
                 .annotate(authors=Count('filechange__commit__author', distinct=True))\
