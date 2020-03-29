@@ -83,6 +83,9 @@ class RepoAnalyzer(object):
         return branch
 
     def __process_commits(self, branch: Branch):
+
+        self.commit_cache = dict()
+        self.file_cache = dict()
         commit_history = self.git_repo.get_commits(branch=branch.name)
 
         logger.info('BEGIN COMMIT HISTORY')
@@ -92,13 +95,233 @@ class RepoAnalyzer(object):
             self.__process_commit(commit, author, branch)
         logger.info("END COMMIT HISTORY")
 
+    def __process_commit(self, git_commit, author, branch):
+        hexsha = str(git_commit.hexsha)
+        cache_key = hexsha
+        if cache_key not in self.commit_cache:
+            msg = git_commit.message
+            is_merge = len(git_commit.parents) > 1
+            stats = git_commit.stats.total
+            ins = int(stats['insertions']) if not is_merge else 0
+            dels = int(stats['deletions']) if not is_merge else 0
+            lines = int(stats['lines']) if not is_merge else 0
+            net = int(ins - dels) if not is_merge else 0
+            real_author = author.get_principal()
+            date = git_commit.authored_datetime
+            commit, created = Commit.objects.get_or_create(
+                hexsha=hexsha,
+                repository=self.repo,
+                branch=branch,
+                defaults=dict(
+                    date=make_aware(date) if not is_aware(date) else date,
+                    message=msg,
+                    insertions=ins,
+                    deletions=dels,
+                    lines=lines,
+                    net=net,
+                    is_merge=is_merge,
+                    author=real_author,
+                    original_author=author
+                )
+            )
+
+            self.commit_cache[cache_key] = commit
+            if not is_merge:
+                self.__process_files(commit, branch, git_commit.stats.files, git_commit)
+
+        return self.commit_cache[cache_key]
+
+    def __process_files(self, commit: Commit, branch: Branch, files, git_commit):
+        ct = dict()  # change type for file
+        for parent in git_commit.parents:
+            for change in parent.diff(git_commit):
+                ct[change.a_blob.path if change.a_blob else change.b_blob.path] = change.change_type
+
+        for fn in files.keys():
+            file = self.__process_file(fn, branch, commit.author)
+            self.__process_file_change(commit, file, files[fn], ct[fn] if fn in ct else '')
+
+    def __process_file(self, filename, branch, author):
+        pkey = str(Path(self.repo.base_directory) / Path(filename))
+        key = pkey + '@' + branch.name
+        if key in self.file_cache:
+            return self.file_cache[key]
+
+        p = Path(filename)
+        parent = p.parent
+        name = p.name
+        if parent == name:
+            parent = ''
+        file_path = self.__get_filepath(branch, parent)
+        try:
+            path = Path(pkey)
+            exists = path.is_file()
+            if not exists:
+                file, created = self.__get_or_create_file(filename, branch, file_path, name, author)
+                self.file_cache[key] = file
+                return file
+
+            # do file analysis
+
+            analysis = None
+            try:
+                analysis = pygount.source_analysis(pkey, self.repo.name)
+            except Exception as e:
+                logger.info('error on {}'.format(pkey))
+                tb = traceback.format_exc(e)
+                logger.info(tb)
+
+            empty = analysis.state == SourceState.empty.name
+            binary = analysis.state == SourceState.binary.name
+            indent_complexity = calculate_complexity_in(pkey) if not empty and not binary else 0
+            is_code = (not binary) and (not empty) and language_is_code(analysis.language)
+            lines = 0
+            if is_code:
+                lines = analysis.code + analysis.documentation + analysis.empty
+            elif not binary:
+                encoding = detect_encoding(path)
+                with open(path, "r", newline='', encoding=encoding, errors='ignore') as fd:
+                    lines = sum(1 for _ in fd)
+
+            file, created = File.objects.get_or_create(
+                filename=filename,
+                repository=self.repo,
+                branch=branch,
+                defaults=dict(
+                    author=author,
+                    path=file_path,
+                    name=name,
+                    language=analysis.language,
+                    code=analysis.code,
+                    doc=analysis.documentation,
+                    blanks=analysis.empty,
+                    empty=empty,
+                    strings=analysis.string,
+                    binary=binary,
+                    exists=True,
+                    is_code=is_code,
+                    indent_complexity=indent_complexity,
+                    lines=lines
+                )
+            )
+            self.file_cache[key] = file
+
+        except Exception as e:
+            tb = traceback.format_exc(e)
+            logger.info(tb)
+            file, created = self.__get_or_create_file(filename, branch, file_path, name, author)
+            self.file_cache[key] = file
+
+        return self.file_cache[key]
+
+    def __get_or_create_file(self, filename, branch, file_path, name, author):
+        return File.objects.get_or_create(
+            filename=filename,
+            repository=self.repo,
+            branch=branch,
+            defaults=dict(
+                author=author,
+                path=file_path,
+                name=name,
+                language='',
+                code=0,
+                doc=0,
+                blanks=0,
+                lines=0,
+                empty=True,
+                strings=0,
+                binary=False,
+                exists=False,
+                is_code=False,
+                indent_complexity=0
+            )
+        )
+
+    def __get_filepath(self, branch: Branch, path):
+        pkey = str(Path(self.repo.base_directory) / Path(path))
+        cache_key = pkey + '@' + branch.name
+
+        if cache_key not in self.filepath_cache:
+            path_obj = Path(path)
+
+            if str(path) != '.' and str(path.parent) != '':
+                parent = self.__get_filepath(branch, path_obj.parent)
+            else:
+                parent = None
+
+            filepath, created = FilePath.objects.get_or_create(
+                path=path,
+                branch=branch,
+                repository=self.repo,
+                defaults=dict(
+                    name=path_obj.name,
+                    exists=Path(pkey).exists(),
+                    parent=parent
+                )
+            )
+
+            self.filepath_cache[cache_key] = filepath
+
+        return self.filepath_cache[cache_key]
+
+    def __process_file_change(self, commit:Commit, file: File, fc, change_type):
+        ins = int(fc['insertions'])
+        dels = int(fc['deletions'])
+        return FileChange.objects.get_or_create(
+            file=file,
+            commit=commit,
+            date=commit.date,
+            author=commit.author,
+            defaults=dict(
+                repository=commit.repository,
+                branch=commit.branch,
+                insertions=ins,
+                deletions=dels,
+                change_type=change_type
+            )
+        )
+
+    def __process_file_blames(self, branch):
+        logger.info("BEGIN PROCESS BLAMES")
+        for f in self.file_cache.values():
+            self.__process_file_blame(f)
+        logger.info("END PROCESS BLAMES")
+
+    def __process_file_blame(self, file: File):
+        if not file.exists or not file.is_code:
+            return None
+        blames = self.git_repo.blame('HEAD', file.filename)
+        if not blames:
+            return None
+        locs_dict = dict()
+        commits_dict = dict()
+        for b in blames:
+            try:
+                commit = self.commit_cache[b[0].hexsha]
+                if commit.author in commits_dict:
+                    commits_dict[commit.author].append(commit)
+                else:
+                    commits_dict[commit.author] = [commit]
+                key = (commit.author.id, commit.id)
+                if key in locs_dict:
+                    locs_dict[key] += len(b[1])
+                else:
+                    locs_dict[key] = len(b[1]) or 0
+
+            except IndexError:
+                print("commit doesn't exist: {}".format(b[0].hexsha))
+                pass
+
+        for author in commits_dict.keys():
+            for commit in commits_dict[author]:
+                FileBlame.objects.get_or_create(file=file, commit=commit, author=author,
+                                                loc=locs_dict[(author.id, commit.id)])
+
     def __process_fileknowledge(self, branch: Branch):
         logger.info("FILE KNOWLEDGE PROCESSING")
 
         index = [f.id for f in self.file_cache.values()]
-
         authors_id = set([a.id for a in self.developer_cache.values()])
-
         df = pd.DataFrame(0, index=index, columns=authors_id)
 
         file_knowledge_dict = dict()
@@ -137,7 +360,7 @@ class RepoAnalyzer(object):
                         defaults=dict(
                             added=fc.insertions,
                             deleted=fc.deletions,
-                            knowledge=0
+                            knowledge=1.0
                         )
                     )
                     file_knowledge_dict[k_index] = fk
@@ -145,13 +368,7 @@ class RepoAnalyzer(object):
                 if fc.file.id in file_owners:
                     file_owner = file_owners[fc.file.id]
                 else:
-                    file_owner = author.id
-                if author.id == file_owner:
-                    add_self += fc.insertions
-                    del_self += fc.deletions
-                else:
-                    add_others += fc.insertions
-                    del_others += fc.deletions
+                    file_owner = fc.file.author_id if fc.file.author_id else author.id
 
                 if author.id == file_owner:
                     add_self += fc.insertions
@@ -164,10 +381,10 @@ class RepoAnalyzer(object):
                 df.at[fc.file.id, author.id] = val + fc.insertions
 
                 deletions = fc.deletions
-                r = df.loc[fc.file.id]
+                row = df.loc[fc.file.id]
 
                 while deletions > 0:
-                    imax = r.idxmax(axis=1)
+                    imax = row.idxmax(axis=1)
                     v = df.at[fc.file.id, imax]
                     if v >= deletions:
                         df.at[fc.file.id, imax] = v - deletions
@@ -178,9 +395,11 @@ class RepoAnalyzer(object):
                         deletions -= v
                         df.at[fc.file.id, imax] = 0
 
-                imax = r.idxmax(axis=1)
+                imax = row.idxmax(axis=1)
                 if df.at[fc.file.id, imax] > 0:
                     file_owners[fc.file.id] = imax
+                else:
+                    file_owners[fc.file.id] = file_owner
 
             CommitBlame.objects.get_or_create(
                 commit=c,
@@ -255,223 +474,3 @@ class RepoAnalyzer(object):
             dev.repos.add(self.repo)
             return dev
         return self.developer_cache[cache_key]
-
-    def __process_commit(self, git_commit, author, branch):
-        hexsha = str(git_commit.hexsha)
-        date = git_commit.authored_datetime
-
-        cache_key = (hexsha, date)
-        if cache_key not in self.commit_cache:
-            msg = git_commit.message
-            is_merge = len(git_commit.parents) > 1
-            stats = git_commit.stats.total
-            ins = int(stats['insertions']) if not is_merge else 0
-            dels = int(stats['deletions']) if not is_merge else 0
-            lines = int(stats['lines']) if not is_merge else 0
-            net = int(ins - dels) if not is_merge else 0
-            real_author = author.get_principal()
-
-            commit, created = Commit.objects.get_or_create(
-                hexsha=hexsha,
-                repository=self.repo,
-                branch=branch,
-                defaults=dict(
-                    date=make_aware(date) if not is_aware(date) else date,
-                    message=msg,
-                    insertions=ins,
-                    deletions=dels,
-                    lines=lines,
-                    net=net,
-                    is_merge=is_merge,
-                    author=real_author,
-                    original_author=author
-                )
-            )
-
-            self.commit_cache[cache_key] = commit
-            if not is_merge:
-                self.__process_files(commit, branch, git_commit.stats.files, git_commit)
-
-        return self.commit_cache[cache_key]
-
-    def __process_files(self, commit, branch, files, git_commit):
-        ct = dict()
-        for parent in git_commit.parents:
-            for change in parent.diff(git_commit):
-                ct[change.a_blob.path if change.a_blob else change.b_blob.path] = change.change_type
-
-        for fn in files.keys():
-            file = self.__process_file(fn, branch)
-            self.__process_file_change(commit, file, files[fn], ct[fn] if fn in ct else '')
-
-    def __process_file_change(self, commit:Commit, file: File, fc, change_type):
-        ins = int(fc['insertions'])
-        dels = int(fc['deletions'])
-        return FileChange.objects.get_or_create(
-            file=file,
-            commit=commit,
-            date=commit.date,
-            author=commit.author,
-            defaults=dict(
-                repository=commit.repository,
-                branch=commit.branch,
-                insertions=ins,
-                deletions=dels,
-                change_type=change_type
-            )
-        )
-
-    def __process_file(self, filename, branch):
-        pkey = str(Path(self.repo.base_directory) / Path(filename))
-        key = pkey + '@' + branch.name
-        if key in self.file_cache:
-            return self.file_cache[key]
-
-        p = Path(filename)
-        parent = p.parent
-        name = p.name
-        if parent == name:
-            parent = ''
-        file_path = self.__get_filepath(branch, parent)
-        try:
-            path = Path(pkey)
-            exists = path.is_file()
-            if exists:
-                analysis = None
-                try:
-                    analysis = pygount.source_analysis(pkey, self.repo.name)
-                except Exception as e:
-                    logger.info('error on {}'.format(pkey))
-                    tb = traceback.format_exc(e)
-                    logger.info(tb)
-
-                empty = analysis.state == SourceState.empty.name
-                binary = analysis.state == SourceState.binary.name
-                indent_complexity = calculate_complexity_in(pkey) if not empty and not binary else 0
-                is_code = (not binary) and (not empty) and language_is_code(analysis.language)
-                lines = 0
-                if is_code:
-                    lines = analysis.code + analysis.documentation + analysis.empty
-                elif not binary:
-                    encoding = detect_encoding(path)
-                    with open(path, "r", newline='', encoding=encoding, errors='ignore') as fd:
-                        lines = sum(1 for _ in fd)
-
-                file, created = File.objects.get_or_create(
-                    filename=filename,
-                    repository=self.repo,
-                    branch=branch,
-                    defaults=dict(
-                        path=file_path,
-                        name=name,
-                        language=analysis.language,
-                        code=analysis.code,
-                        doc=analysis.documentation,
-                        blanks=analysis.empty,
-                        empty=empty,
-                        strings=analysis.string,
-                        binary=binary,
-                        exists=True,
-                        is_code=is_code,
-                        indent_complexity=indent_complexity,
-                        lines=lines
-                    )
-                )
-                self.file_cache[key] = file
-            else:
-                file, created = self.__get_or_create_file(filename, branch, file_path, name)
-                self.file_cache[key] = file
-        except Exception as e:
-            tb = traceback.format_exc(e)
-            logger.info(tb)
-            file, created = self.__get_or_create_file(filename, branch, file_path, name)
-            self.file_cache[key] = file
-
-        return self.file_cache[key]
-
-    def __get_or_create_file(self, filename, branch, file_path, name):
-        return File.objects.get_or_create(
-            filename=filename,
-            repository=self.repo,
-            branch=branch,
-            defaults=dict(
-                path=file_path,
-                name=name,
-                language='',
-                code=0,
-                doc=0,
-                blanks=0,
-                lines=0,
-                empty=True,
-                strings=0,
-                binary=False,
-                exists=False,
-                is_code=False,
-                indent_complexity=0
-            )
-        )
-
-    def __get_filepath(self, branch: Branch, path):
-        pkey = str(Path(self.repo.base_directory) / Path(path))
-        cache_key = pkey + '@' + branch.name
-
-        if cache_key not in self.filepath_cache:
-            path_obj = Path(path)
-
-            if str(path) != '.' and str(path.parent) != '':
-                parent = self.__get_filepath(branch, path_obj.parent)
-            else:
-                parent = None
-
-            filepath, created = FilePath.objects.get_or_create(
-                path=path,
-                branch=branch,
-                repository=self.repo,
-                defaults=dict(
-                    name=path_obj.name,
-                    exists=Path(pkey).exists(),
-                    parent=parent
-                )
-            )
-
-            self.filepath_cache[cache_key] = filepath
-
-        return self.filepath_cache[cache_key]
-
-    def __process_file_blames(self, branch):
-        logger.info("BEGIN PROCESS BLAMES")
-        files = File.objects.filter(repository=self.repo, branch=branch)
-        for f in files:
-            self.__process_file_blame(f)
-        logger.info("END PROCESS BLAMES")
-
-    def __process_file_blame(self, file: File):
-        if not file.exists or not file.is_code:
-            return None
-        blames = self.git_repo.blame('HEAD', file.filename)
-        if not blames:
-            return None
-        locs_dict = dict()
-        commits_dict = dict()
-        for b in blames:
-            try:
-                commit = Commit.objects.get(hexsha=b[0].hexsha)
-                if commit.author in commits_dict:
-                    commits_dict[commit.author].append(commit)
-                else:
-                    commits_dict[commit.author] = [commit]
-                key = (commit.author.id, commit.id)
-                if key in locs_dict:
-                    locs_dict[key] += len(b[1])
-                else:
-                    locs_dict[key] = len(b[1]) or 0
-
-            except Commit.DoesNotExist:
-                print("commit doesn't exist: {}".format(b[0].hexsha))
-                pass
-
-        for author in commits_dict.keys():
-            for commit in commits_dict[author]:
-                FileBlame.objects.get_or_create(file=file, commit=commit, author=author, loc=locs_dict[(author.id, commit.id)])
-
-

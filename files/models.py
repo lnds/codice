@@ -58,6 +58,7 @@ class File(models.Model):
     path = models.ForeignKey(FilePath, on_delete=models.CASCADE)
     repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+    author = models.ForeignKey(Developer, related_name="file_author", null=True, on_delete=models.SET_NULL, default=None)
     knowledge_owner = models.ForeignKey(Developer, null=True, on_delete=models.SET_NULL, default=None)
 
     class Meta:
