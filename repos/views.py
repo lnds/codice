@@ -74,10 +74,8 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
     template_name = 'repository/detail.html'
     paginate_by = 10
 
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         self.branch = self.object.find_branch(self.request.GET['filter'] if 'filter' in self.request.GET else None)
         context['branch'] = self.branch
         commit_set = self.repo.commit_set.filter(branch=self.branch)
@@ -102,7 +100,7 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
         context['filter'] = self.branch.name if self.branch else None
         context['branches_count'] = self.repo.branches_count()
 
-        devs= Paginator(self.repo.get_developers_contribution(self.branch), self.paginate_by)
+        devs = Paginator(self.repo.get_developers_contribution(self.branch), self.paginate_by)
         page = self.request.GET.get('page')
         context['devs_count'] = devs.count
 
@@ -120,12 +118,9 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
             knowledge_sum=Sum(F('added') + F('deleted'))
         ).order_by('-knowledge_sum')[:50]
 
-        print(knowledge)
-
-
         context['knowledge'] = knowledge
 
-        context['branch_id'] = self.branch.id if self.branch else  0
+        context['branch_id'] = self.branch.id if self.branch else 0
 
         context['hotspots_count'] = count_hotspots(self.repo, self.branch)
         return context
@@ -153,7 +148,7 @@ def calc_hotspots_tree(repo, branch):
         files = File.objects.filter(path=path, is_code=True)
         for f in files:
             result.append({'size': f.code, 'name': f.name, 'weight': f.get_hotspot_weight(max_file_changes), 'i': f.id,
-                           'changes': f.get_changes, 'size': f.code, 'children': []})
+                           'changes': f.get_changes, 'children': []})
         if len(result) == 0:
             return None
         elif len(result) == 1:
@@ -178,4 +173,3 @@ def repository_hotspots_json(request, pk, branch_id):
         return HttpResponse(json.dumps(data), content_type='application/json')
     except Branch.DoesNotExist:
         return HttpResponse(json.dumps({"name": "root", "children": []}), content_type='application/json')
-

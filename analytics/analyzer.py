@@ -22,6 +22,7 @@ _log_pygount = logging.getLogger('pygount')
 _log_pygount.disabled = True
 logger = logging.getLogger(__name__)
 
+
 def language_is_code(lang):
     return lang not in ('__unknown__', '__binary__', '__error__', '__generated__', '__empty__')
 
@@ -35,8 +36,8 @@ def process_repo_objects(repo: Repository):
 class RepoAnalyzer(object):
 
     def __init__(self, repo: Repository):
-        self.repo : Repository = repo
-        self.owner : User = repo.owner
+        self.repo: Repository = repo
+        self.owner: User = repo.owner
         self.file_cache = dict()
         self.filepath_cache = dict()
         self.git_repo = GitRepository(self.repo.base_directory)
@@ -263,7 +264,7 @@ class RepoAnalyzer(object):
         self.filepath_cache[cache_key] = filepath
         return filepath
 
-    def __process_file_change(self, commit:Commit, file: File, fc, change_type):
+    def __process_file_change(self, commit: Commit, file: File, fc, change_type):
         ins = int(fc['insertions'])
         dels = int(fc['deletions'])
         return FileChange.objects.get_or_create(
@@ -308,7 +309,7 @@ class RepoAnalyzer(object):
                     locs_dict[key] = len(b[1]) or 0
 
             except IndexError:
-                print("commit doesn't exist: {}".format(b[0].hexsha))
+                logger.info("commit doesn't exist: {}".format(b[0].hexsha))
                 pass
 
         for author in commits_dict.keys():
@@ -331,7 +332,7 @@ class RepoAnalyzer(object):
         for d in self.developer_cache.values():
             owners_cache[d.id] = d
 
-        commits = sorted(self.commit_cache.values(), key=lambda c: c.date)
+        commits = sorted(self.commit_cache.values(), key=lambda co: co.date)
         for c in commits:
             if c.is_merge:
                 continue
@@ -445,7 +446,7 @@ class RepoAnalyzer(object):
             file_blames = FileBlame.objects.filter(author=author, commit__in=commits)
             fd = dict()
             for fb in file_blames:
-                if not fb.file in fd:
+                if fb.file not in fd:
                     fd[fb.file] = (fb.loc, fb.commit.date)
                 else:
                     (loc, date) = fd[fb.file]

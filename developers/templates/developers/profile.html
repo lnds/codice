@@ -472,10 +472,10 @@
 {% endblock %}
 {% block breadcrumb_path %}
         <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
-    {% if project %}
-        <a href="{% url 'projects' %}"><span class="text-gray-lighter">{% trans 'projects' %}</span></a> /
-        <a href="{% url 'projects-detail' project.id %}"><span class="text-gray-lighter">{{ project|lower }}</span></a> /
-        <a href="{% url 'project-devs-list' project.id %}"><span class="text-gray-lighter">{% trans 'committers' %}</span></a> /
+    {% if repo %}
+        <a href="{% url 'repos' %}"><span class="text-gray-lighter">{% trans 'repositories' %}</span></a> /
+    <a href="{% url 'repository-detail' repo.id %}"><span class="text-gray-lighter">{{ repo.name|lower }}</span> </a> /
+        <a href="{% url 'repo-devs-list' repo.id %}"><span class="text-gray-lighter">{% trans 'devs' %}</span></a> /
     {% else %}
         <a href="{% url 'devs' %}"><span class="text-gray-lighter">{% trans 'devs' %}</span></a> /
     {% endif %}

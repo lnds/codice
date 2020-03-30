@@ -243,12 +243,20 @@
             <td>
                  <div class="row">
                     <div class="col-md-2">
+                        {% if repo %}
+                        <a href="{% url 'repo-developer-profile' repo.id author.author %}">
+                        {% else %}
                         <a href="{% url 'developer-profile' author.author %}">
+                        {% endif %}
                            <img src="{% gravatar_url author.author__email 32 %}" width="32" class="img-circle" onerror="this.src='{% static 'img/1.png' %}'">
                         </a>
                     </div>
                     <div class="col-md-10">
+                        {% if repo %}
+                        <a href="{% url 'repo-developer-profile' repo.id author.author %}">
+                        {% else %}
                         <a href="{% url 'developer-profile' author.author %}">
+                        {% endif %}
                             {{ author.author__name }} <br><small> &lt;{{ author.author__email }}&gt;</small>
                         </a>
                     </div>

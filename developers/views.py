@@ -148,12 +148,17 @@ class DeveloperProfile(DeveloperMixin, DetailView):
             raise PermissionDenied
 
         context = super().get_context_data(**kwargs)
-        repos_id = Commit.objects.filter(author=self.object).values('repository_id').distinct()
+        if 'repo_id' in self.kwargs:
+            repo_id = self.kwargs['repo_id']
+            context['repo'] = Repository.objects.get(pk=repo_id)
+            repos_id = [repo_id]
+        else:
+            repos_id = Commit.objects.filter(author=self.object).values('repository_id').distinct()
+
         self.repos = Repository.objects.filter(id__in=repos_id)
         self.branches = get_default_branches_for_repos(self.repos)
 
         blame_aggregate = Blame.objects.filter(
-            author=self.object,
             repository__in=self.repos,
             branch__in=self.branches
         ).aggregate(
@@ -283,7 +288,6 @@ class DeveloperProfile(DeveloperMixin, DetailView):
         impact = blame_stats['log_impact']
         throughput = blame_stats['throughput']
         context['throughput'] = throughput
-        raw_throughput = blame_stats['raw_throughput']
         context['deletions'] = blame_stats['deletions']
         context['lines'] = blame_stats['lines']
         context['insertions'] = blame_stats['insertions']
@@ -291,6 +295,8 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 
         context['loc_per_day'] = context['lines'] / active_days if active_days > 0 else 0
 
+        print("call get_badge_data for {}: {}, {}, {}, {}, {}, {}, {}".format(self.object, impact, churn, self_churn, throughput, work_others, self.max_churn, self.max_impact ))
+        print(get_badge_data(impact, churn, self_churn, throughput, work_others, self.max_churn, self.max_impact))
         context.update(get_badge_data(impact, churn, self_churn, throughput, work_others, self.max_churn, self.max_impact))
 
         context['impact'] = impact
