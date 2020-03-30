@@ -34,6 +34,7 @@ class DeveloperMixin(LoginRequiredMixin):
         context['churn_higher_threshold'] = self.churn_higher_threshold
         return context
 
+
 class DeveloperList(DeveloperMixin, ListView):
     paginate_by = 10
     context_object_name = 'developer_list'
@@ -74,7 +75,6 @@ class DeveloperList(DeveloperMixin, ListView):
         self.max_impact = 0
         n = 0
         for b in blame_aggregate:
-            print("b = {}".format(b))
             n += 1
             self.total_impact += (b['total_impact'] or 0)
             if not self.min_impact:
@@ -115,7 +115,6 @@ class DeveloperList(DeveloperMixin, ListView):
 
         context = super().get_context_data(**kwargs)
 
-        print("self total_impact 1.5 = {}".format(self.total_impact))
         if 'repo_id' in self.kwargs:
             context['repo'] = Repository.objects.get(pk=self.kwargs['repo_id'])
         self.branches = get_default_branches_for_repos(self.repos)
@@ -301,7 +300,7 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 class DeveloperDashboard(DeveloperMixin, ListView):
     context_object_name = 'developer_list'
     template_name = 'developers/dashboard.html'
-    paginate_by = 50
+    paginate_by = 20
 
     def get_queryset(self):
         self.owner = self.request.user

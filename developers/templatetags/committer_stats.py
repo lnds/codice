@@ -73,7 +73,6 @@ def get_badge_data(log_impact, churn, self_churn, throughput, work_others, max_c
         context['level'] = 'D'
         context['ratio'] = (r - RD)/(RC-RD)
 
-    print("cx = {}, cy = {}".format(cx, cy))
     if cx < 0.5:
         if cy < 0.5:
             context['badge'] = 'fa fa-wrench text-info'

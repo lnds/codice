@@ -70,13 +70,11 @@ def get_devs_owner_pie_chart(blames):
 
 def calc_cx(churn, max_churn):
     r = churn / max_churn if max_churn > 0 else 0.5
-    print("impact = {}, max_impact = {}, r = {}".format(churn, max_churn, r))
     return r
 
 
 def calc_cy(impact, max_impact):
     r = impact / max_impact if max_impact > 0 else 0.5
-    print("impact = {}, max_impact = {}, r = {}".format(impact, max_impact, r))
     return r
 
 
@@ -92,7 +90,6 @@ def get_devs_quadrant_chart(blames):
         size = math.sqrt(blame_stat['impact'])
         weight1 = blame_stat['throughput']
         weight2 = blame_stat['churn']
-        print("blame_stat = {}".format(blame_stat))
         quadrant_data.append({'developer': dev,
                               'cx': cx,
                               'cy': cy,
