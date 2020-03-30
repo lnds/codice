@@ -59,32 +59,17 @@ class DeveloperList(DeveloperMixin, ListView):
             branch__in=self.branches
         ).aggregate(
             loc=Sum('loc'),
-            max_churn=Max('churn')
+            max_churn=Max('churn'),
+            min_impact=Avg('impact'),
+            max_impact = Max('log_impact'),
+            total_impact=Sum('impact'),
         )
 
         self.total_blame = blame_aggregate['loc']
         self.max_churn = blame_aggregate['max_churn']
-
-        blame_aggregate = Blame.objects.filter(repository__in=self.repos) \
-            .values('author') \
-            .annotate(total_impact=Sum('log_impact')).all()
-
-        self.total_impact = 0
-
-        self.min_impact = None
-        self.max_impact = 0
-        n = 0
-        for b in blame_aggregate:
-            n += 1
-            self.total_impact += (b['total_impact'] or 0)
-            if not self.min_impact:
-                self.min_impact = b['total_impact']
-            if b['total_impact'] < self.min_impact:
-                self.min_impact = b['total_impact']
-            if b['total_impact'] > self.max_impact:
-                self.max_impact = b['total_impact']
-        if n > 0:
-            self.min_impact = self.total_impact / n
+        self.max_impact = blame_aggregate['max_impact']
+        self.min_impact = blame_aggregate['min_impact']
+        self.total_impact = blame_aggregate['total_impact']
 
         self.sort_by = '-commits'
         if 'sort' in self.request.GET:
@@ -158,21 +143,24 @@ class DeveloperProfile(DeveloperMixin, DetailView):
         self.repos = Repository.objects.filter(id__in=repos_id)
         self.branches = get_default_branches_for_repos(self.repos)
 
+        self.devs = Developer.objects.filter(owner=self.owner, is_alias_of__isnull=True, enabled=True).distinct()
+
         blame_aggregate = Blame.objects.filter(
+            author__in=self.devs.all(),
             repository__in=self.repos,
             branch__in=self.branches
         ).aggregate(
             loc=Sum('loc'),
-            total_impact=Sum('impact'),
+            max_churn=Max('churn'),
             min_impact=Avg('impact'),
             max_impact=Max('log_impact'),
-            max_churn=Max('churn')
+            total_impact=Sum('impact'),
         )
         self.total_blame = blame_aggregate['loc']
-        self.total_impact = blame_aggregate['total_impact']
-        self.min_impact = blame_aggregate['min_impact']
-        self.max_impact = blame_aggregate['max_impact']
         self.max_churn = blame_aggregate['max_churn']
+        self.max_impact = blame_aggregate['max_impact']
+        self.min_impact = blame_aggregate['min_impact']
+        self.total_impact = blame_aggregate['total_impact']
 
         commit_set = get_developer_commits(self.object, self.repos, self.branches)
         blame_stats = get_developer_blame_summary(self.object, self.repos, self.branches, self.total_blame)
@@ -295,18 +283,23 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 
         context['loc_per_day'] = context['lines'] / active_days if active_days > 0 else 0
 
-        print("call get_badge_data for {}: {}, {}, {}, {}, {}, {}, {}".format(self.object, impact, churn, self_churn, throughput, work_others, self.max_churn, self.max_impact ))
+        print("call get_badge_data for {}{}: {}, {}, {}, {}, {}, {}, {}".format(self.object, self.object.id,
+                                                                                impact, churn, self_churn, throughput,
+                                                                                work_others,
+                                                                                self.max_churn, self.max_impact ))
         print(get_badge_data(impact, churn, self_churn, throughput, work_others, self.max_churn, self.max_impact))
         context.update(get_badge_data(impact, churn, self_churn, throughput, work_others, self.max_churn, self.max_impact))
 
         context['impact'] = impact
+        context['max_impact'] = self.max_impact
+        context['max_churn'] = self.max_churn
         return context
 
 
 class DeveloperDashboard(DeveloperMixin, ListView):
     context_object_name = 'developer_list'
     template_name = 'developers/dashboard.html'
-    paginate_by = 20
+    paginate_by = 100
 
     def get_queryset(self):
         self.owner = self.request.user
@@ -380,7 +373,20 @@ class DeveloperDashboard(DeveloperMixin, ListView):
             values('author__name').annotate(knowledge=Sum(F('added') + F('deleted')))
         context['knowledge'] = knowledge
 
-        quadrant = get_devs_quadrant_chart(blames)
+        blame_aggregate = Blame.objects.filter(
+            author__in=self.devs.all(),
+            repository__in=self.repos,
+            branch__in=self.branches
+        ).aggregate(
+            max_churn=Max('churn'),
+            max_impact=Max('log_impact')
+        )
+        self.max_churn = blame_aggregate['max_churn']
+        self.max_impact = blame_aggregate['max_impact']
+        context['max_impact'] = self.max_impact
+        context['max_churn'] = self.max_churn
+        quadrant = get_devs_quadrant_chart(blames, self.max_churn, self.max_impact)
         context['quadrant_data'] = quadrant['data']
+
 
         return context

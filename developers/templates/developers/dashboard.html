@@ -33,7 +33,12 @@ div.quadrant_tooltip {
     <small>
     {% trans 'for repository:' %} <a href="{% url 'repository-detail' repo.id %}">{{ repo|lower }}</a>
     </small>
+
 {% endif %}
+<b>
+    {{ max_impact|floatformat:2 }}|{{ max_churn|floatformat:2 }}|{{ impact|floatformat:2 }}
+</b>
+
 {% endblock %}
 {% block table %}
     <div class="row">
@@ -193,7 +198,11 @@ div.quadrant_tooltip {
 {% endblock %}
 {% block breadcrumb_path %}
     <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
-    <span>{% trans 'devs board' %}</span>
+     {% if repo %}
+    <a href="{% url 'repos' %}"><span class="text-gray-lighter">{% trans 'repositories' %}</span></a> /
+    <a href="{% url 'repository-detail' repo.id %}"><span class="text-gray-lighter">{{ repo.name|lower }}</span> </a> /
+    {% endif %}
+    <span class="text-gray-light">{% trans 'devs board' %}</span>
 {% endblock %}
 {% block additional_javascript %}
 <script src="{% static 'lib/d3/d3.js' %}"></script>
@@ -212,7 +221,12 @@ var v_quadrant_data = [
             "impact": "{{qd.impact}}".replace(',', '.'),
             "weight1": "{{qd.weight1}}".replace(',', '.'),
             "weight2": "{{qd.weight2}}".replace(',', '.'),
-            "developer_id": {{ qd.developer_id }}
+            "developer_id": {{ qd.developer_id }},
+            {% if repo %}
+            "repo_id": {{ repo.id }},
+            {% else %}
+            "repo_id": 0,
+            {% endif %}
         },
     {% endfor %}
 ];

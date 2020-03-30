@@ -117,6 +117,7 @@ function show_quadrant(data) {
                 .style("opacity", .9);
             div.html("<span> " + d.developer
                 + " </span>"
+                + "<br>cx:" + d.x + " cy:" + d.y
                 + "<br>impact:" + Math.round(d.impact)
                 + "<br>Thpt:" + Math.round(d.weight1 * 100.0)
                 + "<br>Chrn:" + Math.round(d.weight2 * 100.0))
@@ -134,8 +135,8 @@ function show_quadrant(data) {
                 .style("opacity", 0);
         })
         .on("click", function (d) {
-            if (d.project_id > 0) {
-                window.location.href = '/devs/' + d.project_id + "/" + d.developer_id;
+            if (d.repo_id > 0) {
+                window.location.href = '/devs/r/' + d.repo_id + "/profile/" + d.developer_id;
             } else {
                 window.location.href = '/devs/profile/' + d.developer_id;
             }

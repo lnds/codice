@@ -14,7 +14,7 @@
     {% load_chart charttype_activity_acum chartdata_activity_acum chartcontainer_activity_acum extra_activity_acum %}
 {% endblock %}
 {% block content_body %}
-    <h2 class="page-title">{% trans 'Developer Profile' %}</h2>
+    <h2 class="page-title">{% trans 'Developer Profile' %} {{ max_impact|floatformat:2 }}|{{ max_churn|floatformat:2 }}|{{ impact|floatformat:2 }}</h2>
     <div class="row">
         <section class="col-md-7">
             <section class="widget">
