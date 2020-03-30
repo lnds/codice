@@ -228,7 +228,7 @@
 {% endblock %}
 {% block table_body %}
     {% for author in developer_list %}
-        {% get_badge_data author.throughput author.churn author.self_churn author.work_others author.work_self as badge  %}
+        {% get_badge_data author.log_impact author.churn author.self_churn author.throughput author.work_others max_churn max_impact as badge  %}
         <tr>
             <td class="text-align-center">
                 {% if badge.badge_stack %}
@@ -290,7 +290,7 @@
                 {{ author.work_others|mul:100.0|floatformat:1 }}%
             </td>
             <td class="text-align-right">
-                {{ author.impact|floatformat:1|intcomma}}<br>
+                {{ author.log_impact|floatformat:1|intcomma}}<br>
                 {% if total_impact %}
                 {{ author.log_impact|div:total_impact|mul:100.0|floatformat:1 }}%
                 {% else %}

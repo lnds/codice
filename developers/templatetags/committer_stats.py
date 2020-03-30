@@ -21,10 +21,10 @@ RD = 0.0
 
 
 @register.simple_tag
-def get_badge_data(throughput, churn, self_churn, work_others, work_self):
+def get_badge_data(log_impact, churn, self_churn, throughput, work_others, max_churn, max_log_impact):
     context = dict()
-    cx = calc_cx(churn, work_others)
-    cy = calc_cy(throughput, work_self)
+    cx = calc_cx(churn, max_churn)
+    cy = calc_cy(log_impact, max_log_impact)
     context['cx'] = cx
     context['cy'] = cy
     if not self_churn:

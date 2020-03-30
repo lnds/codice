@@ -131,7 +131,7 @@ def get_developer_blame_summary(dev, repos, branches, total_blame, enabled_only=
             blame = int(result['blame'])
         else:
             blame = 0
-        commits = dev.commit_set
+        commits = dev.commit_set.filter(is_merge=False)
         result['dev'] = dev
         result['last_commit'] = commits.order_by('date').last()
         result['commits_count'] = commits.count()

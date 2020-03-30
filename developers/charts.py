@@ -68,14 +68,11 @@ def get_devs_owner_pie_chart(blames):
     return result
 
 
-churn_factor = 0.05
-throughput_factor = 0.95
-
-
 def calc_cx(churn, max_churn):
     r = churn / max_churn if max_churn > 0 else 0.5
     print("impact = {}, max_impact = {}, r = {}".format(churn, max_churn, r))
     return r
+
 
 def calc_cy(impact, max_impact):
     r = impact / max_impact if max_impact > 0 else 0.5

@@ -477,7 +477,7 @@
         <a href="{% url 'projects-detail' project.id %}"><span class="text-gray-lighter">{{ project|lower }}</span></a> /
         <a href="{% url 'project-devs-list' project.id %}"><span class="text-gray-lighter">{% trans 'committers' %}</span></a> /
     {% else %}
-        <a href="{% url 'devs' %}"><span class="text-gray-lighter">{% trans 'committers' %}</span></a> /
+        <a href="{% url 'devs' %}"><span class="text-gray-lighter">{% trans 'devs' %}</span></a> /
     {% endif %}
     <span class="text-gray-light">{{ developer.name|lower }}</span>
 {% endblock %}

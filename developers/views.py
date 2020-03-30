@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Sum, Avg, Count, F
+from django.db.models import Sum, Avg, Count, F, Max
 from django.db.models.functions import TruncDate
 from django.views.generic import ListView, DetailView
 
@@ -52,19 +52,26 @@ class DeveloperList(DeveloperMixin, ListView):
             self.devs = Developer.objects.filter(commit__repository__in=self.repos, commit__branch__in=self.branches,
                                                  is_alias_of__isnull=True, enabled=True).distinct()
 
-        blame_aggregate = Blame.objects.filter(author__in=self.devs.all(), repository__in=self.repos,
-                                               branch__in=self.branches).aggregate(loc=Sum('loc'))
+        blame_aggregate = Blame.objects.filter(
+            author__in=self.devs.all(),
+            repository__in=self.repos,
+            branch__in=self.branches
+        ).aggregate(
+            loc=Sum('loc'),
+            max_churn=Max('churn')
+        )
 
         self.total_blame = blame_aggregate['loc']
+        self.max_churn = blame_aggregate['max_churn']
 
         blame_aggregate = Blame.objects.filter(repository__in=self.repos) \
             .values('author') \
             .annotate(total_impact=Sum('log_impact')).all()
 
         self.total_impact = 0
-        print("self total_impact -3 = {}".format(self.total_impact))
 
         self.min_impact = None
+        self.max_impact = 0
         n = 0
         for b in blame_aggregate:
             print("b = {}".format(b))
@@ -74,9 +81,10 @@ class DeveloperList(DeveloperMixin, ListView):
                 self.min_impact = b['total_impact']
             if b['total_impact'] < self.min_impact:
                 self.min_impact = b['total_impact']
+            if b['total_impact'] > self.max_impact:
+                self.max_impact = b['total_impact']
         if n > 0:
             self.min_impact = self.total_impact / n
-        print("self total_impact -2 = {}".format(self.total_impact))
 
         self.sort_by = '-commits'
         if 'sort' in self.request.GET:
@@ -98,15 +106,12 @@ class DeveloperList(DeveloperMixin, ListView):
                      'changes': 'changes', '-changes': '-changes'}
             if self.sort in sorts:
                 self.sort_by = sorts[self.sort]
-        print("self total_impact -1 = {}".format(self.total_impact))
 
         self.search_query = self.request.GET['q'] if 'q' in self.request.GET else None
         self.blames = get_developers_blame_summaries(self.repos, self.branches, self.sort_by, self.search_query)
-        print("self total_impact 0 = {}".format(self.total_impact))
         return self.blames
 
     def get_context_data(self, **kwargs):
-        print("self total_impact 1 = {}".format(self.total_impact))
 
         context = super().get_context_data(**kwargs)
 
@@ -123,13 +128,13 @@ class DeveloperList(DeveloperMixin, ListView):
         else:
             self.sort = '-commits'
         context['total_blame'] = self.total_blame
-        print("self total_impact = {}".format(self.total_impact))
         context['total_impact'] = self.total_impact
         context['sort'] = self.sort
         context['min_impact'] = self.min_impact
+        context['max_impact'] = self.max_impact
+        context['max_churn'] = self.max_churn
         page_obj = context['page_obj']
         context['search_query'] = self.search_query
-        print("self total_impact 2 = {}".format(self.total_impact))
         return context
 
 
@@ -140,25 +145,30 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         self.owner = self.request.user
+        if self.object.owner != self.owner:
+            raise PermissionDenied
+
         context = super().get_context_data(**kwargs)
         repos_id = Commit.objects.filter(author=self.object).values('repository_id').distinct()
         self.repos = Repository.objects.filter(id__in=repos_id)
         self.branches = get_default_branches_for_repos(self.repos)
 
-        self.devs = Developer.objects.filter(owner=self.owner, is_alias_of__isnull=True, enabled=True).distinct()
-
-        blame_aggregate = Blame.objects.filter(author__in=self.devs.all(),
-                                               repository__in=self.repos,
-                                               branch__in=self.branches) \
-            .aggregate(loc=Sum('loc'), total_impact=Sum('impact'), min_impact=Avg('impact'))
+        blame_aggregate = Blame.objects.filter(
+            author=self.object,
+            repository__in=self.repos,
+            branch__in=self.branches
+        ).aggregate(
+            loc=Sum('loc'),
+            total_impact=Sum('impact'),
+            min_impact=Avg('impact'),
+            max_impact=Max('log_impact'),
+            max_churn=Max('churn')
+        )
         self.total_blame = blame_aggregate['loc']
         self.total_impact = blame_aggregate['total_impact']
         self.min_impact = blame_aggregate['min_impact']
-
-        context['devs'] = self.devs
-        context['total_blame'] = self.total_blame
-        if self.object.owner != self.owner:
-            raise PermissionDenied
+        self.max_impact = blame_aggregate['max_impact']
+        self.max_churn = blame_aggregate['max_churn']
 
         commit_set = get_developer_commits(self.object, self.repos, self.branches)
         blame_stats = get_developer_blame_summary(self.object, self.repos, self.branches, self.total_blame)
@@ -168,7 +178,6 @@ class DeveloperProfile(DeveloperMixin, DetailView):
         self_churn = blame_stats['self_churn']
         context['self_churn'] = self_churn
         work_others = blame_stats['work_others']
-        work_self = blame_stats['work_self']
         context['changes'] = blame_stats['changes']
         context['commits_limit'] = self.commits_limit
 
@@ -200,8 +209,6 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 
         context['files_created'] = files_created
         context['files_deleted'] = files_deleted
-        context['repo_data'] = repo_data
-        context['repos_count'] = self.repos.count()
         active_days = blame_stats['days']
         context['active_days'] = active_days
 
@@ -273,13 +280,11 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 
         churn = blame_stats['churn']
         context['churn'] = churn
-        raw_churn = blame_stats['raw_churn']
-        context['raw_churn'] = raw_churn
 
+        impact = blame_stats['log_impact']
         throughput = blame_stats['throughput']
         context['throughput'] = throughput
         raw_throughput = blame_stats['raw_throughput']
-        context['raw_throughput'] = raw_throughput
         context['deletions'] = blame_stats['deletions']
         context['lines'] = blame_stats['lines']
         context['insertions'] = blame_stats['insertions']
@@ -287,10 +292,11 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 
         context['loc_per_day'] = context['lines'] / active_days if active_days > 0 else 0
 
-        context.update(get_badge_data(throughput, churn, self_churn, work_others, work_self))
+        context.update(get_badge_data(impact, churn, self_churn, throughput, work_others, self.max_churn, self.max_impact))
 
-        context['impact'] = blame_stats['log_impact']
+        context['impact'] = impact
         return context
+
 
 class DeveloperDashboard(DeveloperMixin, ListView):
     context_object_name = 'developer_list'
