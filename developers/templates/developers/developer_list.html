@@ -290,7 +290,7 @@
                 {{ author.work_others|mul:100.0|floatformat:1 }}%
             </td>
             <td class="text-align-right">
-                {{ author.log_impact|floatformat:1 }}<br>
+                {{ author.impact|floatformat:1|intcomma}}<br>
                 {% if total_impact %}
                 {{ author.log_impact|div:total_impact|mul:100.0|floatformat:1 }}%
                 {% else %}

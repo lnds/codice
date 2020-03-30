@@ -178,6 +178,9 @@ class FileChange(models.Model):
     class Meta:
         db_table = 'codice_filechange'
         unique_together = (('file', 'commit'),)
+        indexes = [
+            models.Index(fields=['commit'])
+        ]
 
 
 class FileBlame(models.Model):

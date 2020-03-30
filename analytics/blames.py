@@ -1,3 +1,5 @@
+from math import log10
+
 import numpy
 from django.db.models import Sum, Count
 from commits.models import Commit
@@ -47,18 +49,15 @@ def update_blame_object(blame: dict, dev: Developer, repo: Repository, branch: B
         added = 0
         removed = 0
         for fc in com.filechange_set.all():
-            if fc.change_type == 'A' or fc.change_type == 'C':
+            if fc.change_type == 'A':
                 added += fc.insertions
                 files_added += 1
-            elif fc.change_type == 'M':
+            elif fc.change_type == 'M' or fc.change_type == 'C':
                 edited += fc.insertions + fc.deletions
                 files_changed += 1
             elif fc.change_type == 'D':
                 removed += fc.deletions
                 files_removed += 1
-            else:
-                removed += fc.deletions
-                added += fc.insertions
             changes += 1
 
         total_edited += edited
@@ -92,7 +91,7 @@ def update_blame_object(blame: dict, dev: Developer, repo: Repository, branch: B
     impact = base_score + base_score * old_code_weighting
 
     blame["impact"] = impact
-    blame["log_impact"] = numpy.ma.sqrt(impact)
+    blame["log_impact"] = log10(impact) if impact > 0.0  else 0.0
     blame["ownership"] = blame["loc"] / total_blame if total_blame > 0.0 else 0.0
     blame["lines"] = lines
     blame["insertions"] = insertions
@@ -107,13 +106,16 @@ def update_blame_object(blame: dict, dev: Developer, repo: Repository, branch: B
     blame["work_others"] = 1.0 - blame["work_self"]
     dst = (add_self+add_others+del_others)
     nst = (add_self+add_others+del_others+del_self)
-    blame["self_throughput"] = dst / nst if nst > 0 else 1.0
-    blame["self_churn"] = del_self / nst if nst > 0 else 0.0
+    blame["raw_throughput"] = dst / nst if nst > 0 else 1.0
+
+    if blame['loc'] < blame['net'] and blame['net'] > 0:
+        blame['raw_churn'] = (blame['net'] - blame['loc']) / blame['net']
+    else:
+        blame["raw_churn"] = del_self / nst if nst > 0 else 0.0
+    blame["self_churn"] = del_self / add_self if add_self > 0 and del_self <= add_self else 0.0
+    blame["self_throughput"] = 1.0 - blame["raw_churn"]
 
     blame["net_avg"] = int(net / n) if n > 0 else 0
-
-    blame["raw_throughput"] = (insertions+deletions) / total_lines if total_lines > 0 else 0.0
-    blame["raw_churn"] = deletions / total_lines if total_lines > 0 else 0.0
 
     blame["churn"] = (blame["self_churn"]+numpy.ma.sqrt(blame["self_churn"]*blame["raw_churn"])+blame["raw_churn"])/3.0
     blame["throughput"] = (blame["self_throughput"]

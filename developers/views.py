@@ -1,5 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db.models import Sum, Avg, Count, F
 from django.db.models.functions import TruncDate
 from django.views.generic import ListView, DetailView
@@ -61,17 +62,21 @@ class DeveloperList(DeveloperMixin, ListView):
             .annotate(total_impact=Sum('log_impact')).all()
 
         self.total_impact = 0
+        print("self total_impact -3 = {}".format(self.total_impact))
+
         self.min_impact = None
         n = 0
         for b in blame_aggregate:
+            print("b = {}".format(b))
             n += 1
-            self.total_impact += b['total_impact']
+            self.total_impact += (b['total_impact'] or 0)
             if not self.min_impact:
                 self.min_impact = b['total_impact']
             if b['total_impact'] < self.min_impact:
                 self.min_impact = b['total_impact']
         if n > 0:
             self.min_impact = self.total_impact / n
+        print("self total_impact -2 = {}".format(self.total_impact))
 
         self.sort_by = '-commits'
         if 'sort' in self.request.GET:
@@ -93,17 +98,21 @@ class DeveloperList(DeveloperMixin, ListView):
                      'changes': 'changes', '-changes': '-changes'}
             if self.sort in sorts:
                 self.sort_by = sorts[self.sort]
+        print("self total_impact -1 = {}".format(self.total_impact))
 
         self.search_query = self.request.GET['q'] if 'q' in self.request.GET else None
         self.blames = get_developers_blame_summaries(self.repos, self.branches, self.sort_by, self.search_query)
+        print("self total_impact 0 = {}".format(self.total_impact))
         return self.blames
 
     def get_context_data(self, **kwargs):
+        print("self total_impact 1 = {}".format(self.total_impact))
+
         context = super().get_context_data(**kwargs)
 
+        print("self total_impact 1.5 = {}".format(self.total_impact))
         if 'repo_id' in self.kwargs:
             context['repo'] = Repository.objects.get(pk=self.kwargs['repo_id'])
-
         self.branches = get_default_branches_for_repos(self.repos)
         context['devs'] = self.devs if self.devs else None
         context['variable'] = self.variable
@@ -114,10 +123,13 @@ class DeveloperList(DeveloperMixin, ListView):
         else:
             self.sort = '-commits'
         context['total_blame'] = self.total_blame
+        print("self total_impact = {}".format(self.total_impact))
+        context['total_impact'] = self.total_impact
         context['sort'] = self.sort
         context['min_impact'] = self.min_impact
         page_obj = context['page_obj']
         context['search_query'] = self.search_query
+        print("self total_impact 2 = {}".format(self.total_impact))
         return context
 
 
@@ -224,7 +236,6 @@ class DeveloperProfile(DeveloperMixin, DetailView):
         at = fc2['a']
         dt = fc2['d']
 
-
         file_knowledge = (a+d) / (at+dt) if a and d and (at+dt) > 0 else 0.0
 
         context['file_knowledge'] = file_knowledge
@@ -284,6 +295,7 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 class DeveloperDashboard(DeveloperMixin, ListView):
     context_object_name = 'developer_list'
     template_name = 'developers/dashboard.html'
+    paginate_by = 50
 
     def get_queryset(self):
         self.owner = self.request.user
@@ -306,7 +318,7 @@ class DeveloperDashboard(DeveloperMixin, ListView):
 
         self.total_blame = blame_aggregate['loc']
 
-        self.sort_by = '-commits'
+        self.sort_by = '-impact'
         self.search_query = None
         self.blames = get_developers_blame_summaries(self.repos, self.branches, self.sort_by, self.search_query)
 
@@ -319,11 +331,17 @@ class DeveloperDashboard(DeveloperMixin, ListView):
         context['repo'] = self.repo
         context['devs'] = self.devs
         context['repos'] = self.repos
-        blames = self.blames
+        blames = Paginator(self.blames, self.paginate_by)
+
+        page = self.request.GET.get('page') or 1
+
+        total_devs = blames.count
+        context['total_devs'] = total_devs
+
         devs = []
         commits_dev = 0
         locs_dev = 0
-        for blame in blames:
+        for blame in blames.page(page).object_list:
             dev = Developer.objects.get(pk=blame['author'])
             devs.append(dev)
             commits_dev += blame['commits']
@@ -331,6 +349,7 @@ class DeveloperDashboard(DeveloperMixin, ListView):
         context['commits_dev'] = commits_dev / len(devs) if devs and len(devs) > 0 else 0
         context['locs_dev'] = locs_dev / len(devs) if devs and len(devs) > 0 else 0
         context['dev_count'] = len(devs)
+
         blames = get_devs_blame_data(devs, self.repos, self.branches, self.total_blame)
         pie = get_devs_owner_pie_chart(blames)
         context['charttype_pie'] = "pieChart"
@@ -350,7 +369,7 @@ class DeveloperDashboard(DeveloperMixin, ListView):
             values('author__name').annotate(knowledge=Sum(F('added') + F('deleted')))
         context['knowledge'] = knowledge
 
-        quadrant = get_devs_quadrant_chart( blames)
+        quadrant = get_devs_quadrant_chart(blames)
         context['quadrant_data'] = quadrant['data']
 
         return context

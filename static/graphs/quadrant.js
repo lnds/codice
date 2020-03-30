@@ -117,7 +117,8 @@ function show_quadrant(data) {
                 .style("opacity", .9);
             div.html("<span> " + d.developer
                 + " </span>"
-                + "<br>impact:" + Math.round(d.size)
+                + "<br>cx:" + d.x + " cy:" + d.y
+                + "<br>impact:" + Math.round(d.impact)
                 + "<br>Thpt:" + Math.round(d.weight1 * 100.0)
                 + "<br>Chrn:" + Math.round(d.weight2 * 100.0))
                 .style("left", (d3.event.pageX) + "px")

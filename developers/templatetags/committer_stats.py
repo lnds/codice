@@ -73,23 +73,26 @@ def get_badge_data(throughput, churn, self_churn, work_others, work_self):
         context['level'] = 'D'
         context['ratio'] = (r - RD)/(RC-RD)
 
-    if cx < 0.5 < cy:
-        context['badge'] = 'fas fa-fire text-success'
-        context['badge_2x'] = 'fas fa-2x fa-fire text-success'
-        context['badge_description'] = 'prolific'
-    elif cx < 0.5 and cy <= 0.5:
-        context['badge'] = 'fa fa-wrench text-info'
-        context['badge_2x'] = 'fa fa-2x fa-wrench text-info'
-        context['badge_description'] = 'perfectionist'
-    elif cx >= 0.5 and cy > 0.5:
-        context['badge'] = 'fa fa-xs fa-bug text-warning'
-        context['badge_2x'] = 'fa fa-sm fa-2x fa-bug text-warning'
-        context['badge_stack'] = 'fa fa-ban text-danger'
-        context['badge_stack_2x'] = 'fa fa-2x fa-ban text-danger'
-        context['badge_description'] = 'bug buster'
+    print("cx = {}, cy = {}".format(cx, cy))
+    if cx < 0.5:
+        if cy < 0.5:
+            context['badge'] = 'fa fa-wrench text-info'
+            context['badge_2x'] = 'fa fa-2x fa-wrench text-info'
+            context['badge_description'] = 'perfectionist'
+        else:
+            context['badge'] = 'fas fa-fire text-success'
+            context['badge_2x'] = 'fas fa-2x fa-fire text-success'
+            context['badge_description'] = 'prolific'
     else:
-        context['badge'] = 'fas fa-flag ' + ('text-danger' if cy < 0.25 and churn > 0.75 else 'text-warning')
-        context['badge_2x'] = 'fas fa-2x fa-flag ' + ('text-danger' if cy < 0.25 and churn > 0.75 else 'text-warning')
-        context['badge_description'] = 'could be stuck'
+        if cy >= 0.5:
+            context['badge'] = 'fa fa-xs fa-bug text-warning'
+            context['badge_2x'] = 'fa fa-sm fa-2x fa-bug text-warning'
+            context['badge_stack'] = 'fa fa-ban text-danger'
+            context['badge_stack_2x'] = 'fa fa-2x fa-ban text-danger'
+            context['badge_description'] = 'bug buster'
+        else:
+            context['badge'] = 'fas fa-flag ' + ('text-danger' if cy < 0.25 and churn > 0.75 else 'text-warning')
+            context['badge_2x'] = 'fas fa-2x fa-flag ' + ('text-danger' if cy < 0.25 and churn > 0.75 else 'text-warning')
+            context['badge_description'] = 'mantainer'
 
     return context

@@ -37,7 +37,6 @@ class RepoAnalyzer(object):
     def __init__(self, repo: Repository):
         self.repo : Repository = repo
         self.owner : User = repo.owner
-        self.files_bag = dict()
         self.file_cache = dict()
         self.filepath_cache = dict()
         self.git_repo = GitRepository(self.repo.base_directory)
@@ -139,7 +138,8 @@ class RepoAnalyzer(object):
 
         for fn in files.keys():
             file = self.__process_file(fn, branch, commit.author)
-            self.__process_file_change(commit, file, files[fn], ct[fn] if fn in ct else '')
+            if file:
+                self.__process_file_change(commit, file, files[fn], ct[fn] if fn in ct else '')
 
     def __process_file(self, filename, branch, author):
         pkey = str(Path(self.repo.base_directory) / Path(filename))
@@ -157,9 +157,7 @@ class RepoAnalyzer(object):
             path = Path(pkey)
             exists = path.is_file()
             if not exists:
-                file, created = self.__get_or_create_file(filename, branch, file_path, name, author)
-                self.file_cache[key] = file
-                return file
+                return None
 
             # do file analysis
 
@@ -189,6 +187,7 @@ class RepoAnalyzer(object):
                 branch=branch,
                 defaults=dict(
                     author=author,
+                    knowledge_owner=author,
                     path=file_path,
                     name=name,
                     language=analysis.language,
@@ -209,8 +208,7 @@ class RepoAnalyzer(object):
         except Exception as e:
             tb = traceback.format_exc(e)
             logger.info(tb)
-            file, created = self.__get_or_create_file(filename, branch, file_path, name, author)
-            self.file_cache[key] = file
+            return None
 
         return self.file_cache[key]
 
@@ -221,6 +219,7 @@ class RepoAnalyzer(object):
             branch=branch,
             defaults=dict(
                 author=author,
+                knowledge_owner=author,
                 path=file_path,
                 name=name,
                 language='',
@@ -240,29 +239,29 @@ class RepoAnalyzer(object):
     def __get_filepath(self, branch: Branch, path):
         pkey = str(Path(self.repo.base_directory) / Path(path))
         cache_key = pkey + '@' + branch.name
+        if cache_key in self.filepath_cache:
+            return self.filepath_cache[cache_key]
 
-        if cache_key not in self.filepath_cache:
-            path_obj = Path(path)
+        path_obj = Path(path)
 
-            if str(path) != '.' and str(path.parent) != '':
-                parent = self.__get_filepath(branch, path_obj.parent)
-            else:
-                parent = None
+        if str(path) != '.' and str(path.parent) != '':
+            parent = self.__get_filepath(branch, path_obj.parent)
+        else:
+            parent = None
 
-            filepath, created = FilePath.objects.get_or_create(
-                path=path,
-                branch=branch,
-                repository=self.repo,
-                defaults=dict(
-                    name=path_obj.name,
-                    exists=Path(pkey).exists(),
-                    parent=parent
-                )
+        filepath, created = FilePath.objects.get_or_create(
+            path=path,
+            branch=branch,
+            repository=self.repo,
+            defaults=dict(
+                name=path_obj.name,
+                exists=Path(pkey).exists(),
+                parent=parent
             )
+        )
 
-            self.filepath_cache[cache_key] = filepath
-
-        return self.filepath_cache[cache_key]
+        self.filepath_cache[cache_key] = filepath
+        return filepath
 
     def __process_file_change(self, commit:Commit, file: File, fc, change_type):
         ins = int(fc['insertions'])

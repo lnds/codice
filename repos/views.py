@@ -72,6 +72,8 @@ class RepositoryCreate(RepositoryMixin, CanAdminReposMixin, CreateView):
 
 class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
     template_name = 'repository/detail.html'
+    paginate_by = 10
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -100,7 +102,7 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
         context['filter'] = self.branch.name if self.branch else None
         context['branches_count'] = self.repo.branches_count()
 
-        devs= Paginator(self.repo.get_developers_contribution(self.branch), 10)
+        devs= Paginator(self.repo.get_developers_contribution(self.branch), self.paginate_by)
         page = self.request.GET.get('page')
         context['devs_count'] = devs.count
 
@@ -110,13 +112,17 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
             file__repository=self.repo, file__branch=self.branch
         ).select_related(
             'author__name'
-        ).filter(
-            author__enabled=True
         ).values(
             'author__name'
+        ).filter(
+            author__enabled=True
         ).annotate(
-            knowledge=Sum(F('added') + F('deleted'))
-        ).order_by('-knowledge')[:10]
+            knowledge_sum=Sum(F('added') + F('deleted'))
+        ).order_by('-knowledge_sum')[:50]
+
+        print(knowledge)
+
+
         context['knowledge'] = knowledge
 
         context['branch_id'] = self.branch.id if self.branch else  0

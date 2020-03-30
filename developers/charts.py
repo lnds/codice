@@ -1,3 +1,4 @@
+import math
 from time import mktime
 
 from django.db.models import Count, Sum
@@ -71,34 +72,35 @@ churn_factor = 0.05
 throughput_factor = 0.95
 
 
-def calc_cx(work_self:int, work_others:int):
-    print("work self: {} work others: {}".format(work_self, work_others))
-    r = 1.0 - (work_self - work_others)
-    r = r / 2.0
-    print("cx = {}".format(r))
+def calc_cx(churn, max_churn):
+    r = churn / max_churn if max_churn > 0 else 0.5
+    print("impact = {}, max_impact = {}, r = {}".format(churn, max_churn, r))
     return r
 
-def calc_cy(throughput, churn):
-  #  print("t = {}, ch = {}".format(throughput, churn))
-    r = throughput_factor*throughput - churn_factor*churn
-    #print("cy = {}".format(r))
+def calc_cy(impact, max_impact):
+    r = impact / max_impact if max_impact > 0 else 0.5
+    print("impact = {}, max_impact = {}, r = {}".format(impact, max_impact, r))
     return r
 
 
 def get_devs_quadrant_chart(blames):
     quadrant_data = []
 
+    max_impact = max([b["log_impact"] for b in blames])
+    max_churn = max([b["churn"] for b in blames])
     for blame_stat in blames:
         dev = blame_stat['dev']
-        cx = calc_cx(blame_stat['work_self'], blame_stat['work_others'])
-        cy = calc_cy(blame_stat['throughput'], blame_stat['churn'])
-        size = blame_stat['log_impact']
+        cx = calc_cx(blame_stat['churn'], (max_churn)*1.05)
+        cy = calc_cy(blame_stat['log_impact'], max_impact*1.05)
+        size = math.sqrt(blame_stat['impact'])
         weight1 = blame_stat['throughput']
         weight2 = blame_stat['churn']
+        print("blame_stat = {}".format(blame_stat))
         quadrant_data.append({'developer': dev,
                               'cx': cx,
                               'cy': cy,
                               'size': size,
+                              'impact': blame_stat['impact'],
                               'weight1': weight1,
                               'weight2': weight2,
                               'developer_id': dev.id})

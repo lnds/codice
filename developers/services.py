@@ -69,11 +69,11 @@ def top_committers(repos, branches):
     return committer_stats
 
 
-avg_factor = 0.3
-max_factor = 0.7
+avg_factor = 0.5
+max_factor = 0.5
 
 
-def get_developers_blame_summaries(repos, branches, sort_by, search_query, enabled_only=True):
+def get_developers_blame_summaries(repos, branches, sort_by, search_query, enabled_only=True, limit=100):
     query = Blame.objects.filter(repository__in=repos, branch__in=branches,
                                   author__enabled=enabled_only, author__is_alias_of__isnull=True)
     if search_query:
