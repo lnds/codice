@@ -21,9 +21,6 @@
         <a href="{% url 'repository-detail' repo.id %}">{{ repo.name|lower }}</a>
         </small>
     {% endif %}
-    <b>
-{{ max_impact|floatformat:2 }}|{{ max_churn|floatformat:2 }}|{{ impact|floatformat:2 }}
-    </b>
 {% endblock %}
 {% block table_head %}
  <th class="text-align-center">{% trans 'Clas' %}</th>
