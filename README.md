@@ -10,7 +10,7 @@ This release requires
 
 - Python 3.8.
 - Pipenv
-- Posgresql 9.7+    
+- Posgresql 10.0+    
 - RabbitMq
 
 ## Instructions for stand alone development
@@ -31,6 +31,9 @@ Execute these steps:
         
     $ pipenv sync --dev # install all neded packages
     
+    $ # create database and user on postgresql and setup DATABASE_URL environment variable
+
+
     $ python manage.py makemigrations
     
     $ python manage.py migrate
@@ -41,6 +44,11 @@ Execute these steps:
     
     $ rabbitmq-server &
     
+NOTE: if you are using MacOS Big Sur, and have problems with psycopg2-binary, try this before `pipenv install`:
+
+	export LDFLAGS="-L/usr/local/opt/openssl/lib"
+	export CPPFLAGS="-I/usr/local/opt/openssl/include"
+
 Start two shells, one for codice-server and another for celery:
 
     $ celery -A codice.celery_app:app worker --loglevel=info
