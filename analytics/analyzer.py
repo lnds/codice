@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy
 import pandas as pd
 import pygount
+from pygount import SourceAnalysis
 from django.db.models import Max, F
 from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
@@ -338,7 +339,8 @@ class RepoAnalyzer(object):
                 if exists:
                     analysis = None
                     try:
-                        analysis = pygount.source_analysis(pkey, self.repo.name)
+                        analysis = SourceAnalysis.from_file(pkey, self.repo.name)
+                        # analysis = pygount.source_analysis(pkey, self.repo.name)
                     except Exception as e:
                         logger.info('error on {}'.format(pkey))
                         tb = traceback.format_exc(e)
