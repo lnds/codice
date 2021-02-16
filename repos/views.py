@@ -108,7 +108,6 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
         knowledge = FileKnowledge.objects.filter(file__repository=self.repo, file__branch=self.branch). \
                         select_related('author__name').filter(author__enabled=True). \
                         values('author__name').annotate(knowledge=Sum(F('added') + F('deleted')))[:10]
-        print("k = {}".format(knowledge))
         context['knowledge'] = knowledge
 
         context['branch_id'] = self.branch.id if self.branch else  0

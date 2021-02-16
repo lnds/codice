@@ -28,3 +28,5 @@ class GitRepository(object):
             return self.git_repo.blame(rev, filename, incremental=False)
         except GitCommandError:
             return None
+        except KeyError:
+            return None
