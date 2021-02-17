@@ -10,9 +10,12 @@ class BulkOperationManager(object):
         pass
 
     def add(self, obj):
+        """ :return True if _commit is called"""
+        self._chunk.append(obj)
         if len(self._chunk) >= self.chunk_size:
             self._commit()
-        self._chunk.append(obj)
+            return True
+        return False
 
     def done(self):
         if len(self._chunk) > 0:

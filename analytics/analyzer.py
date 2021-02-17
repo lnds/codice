@@ -98,15 +98,19 @@ class RepoAnalyzer(object):
 
         logger.info('BEGIN COMMIT HISTORY')
         commit_dict = {}
-        with BulkCreateManager(Commit) as bulk:
+        with BulkCreateManager(Commit, chunk_size=1000) as bulk:
             for commit in commit_history:
                 author_email = commit.author.email
                 author = self.__get_or_create_author(author_email, commit.author.name)
                 c = self.create_commit(commit, author, branch)
-                bulk.add(c)
                 commit_dict[commit] = c
+                if bulk.add(c):
+                    self.file_creation(commit_dict, branch)
+                    commit_dict = {}
+        self.file_creation(commit_dict, branch)
         logger.info("END COMMIT HISTORY")
 
+    def file_creation(self, commit_dict, branch):
         logger.info("BEGIN FILE CREATION")
         for git_commit in commit_dict.keys():
             self.create_files(branch, git_commit.stats.files)
@@ -163,7 +167,7 @@ class RepoAnalyzer(object):
                 del_others = 0
 
                 with BulkCreateManager(FileKnowledge) as bulk_fk:
-                    for fc in c.filechange_set.select_related("file").all():
+                    for fc in c.filechange_set.select_related("file"):
                         if fc.change_type == 'D' or not fc.file.exists:
                             continue
                         sum_file_knowledge_dict[fc.file.id] += (fc.insertions + fc.deletions)
@@ -235,7 +239,6 @@ class RepoAnalyzer(object):
                     date=c.date
                 )
                 bulk.add(cblame)
-
 
         logger.info("FILE KNOWLEDGE POST PROCESSING")
         # adjust knowledge factor
