@@ -20,6 +20,7 @@ numpy = "*"
 pandas = "*"
 celery = "==4.4.7"
 chardet = "*"
+whitenoise = "*"
 
 [requires]
 python_version = "3.8"

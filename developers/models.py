@@ -16,6 +16,9 @@ class Developer(models.Model):
     class Meta:
         db_table = 'codice_developer'
         unique_together = (('email', 'owner'),)
+        indexes = [
+            models.Index(fields=['email', 'owner'])
+        ]
 
     def __str__(self):
         return "{} <{}>".format(self.name, self.email)

@@ -1,5 +1,6 @@
 import traceback
 from collections import defaultdict
+from itertools import islice
 from pathlib import Path
 
 import pandas as pd
@@ -9,6 +10,7 @@ from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
 
 from analytics.blames import calc_total_blame, update_blame_object
+from analytics.bulk import BulkCreateManager, BulkUpdateManager
 from authentication.models import User
 from commits.models import Commit, CommitBlame
 from developers.models import Developer, Blame
@@ -35,7 +37,11 @@ def process_repo_objects(repo: Repository):
     analyzer.process()
 
 
+BULK_SIZE = 500
+
+
 class RepoAnalyzer(object):
+    count_change_status = 0
 
     def __init__(self, repo: Repository):
         self.repo: Repository = repo
@@ -44,6 +50,8 @@ class RepoAnalyzer(object):
         self.file_cache = dict()
         self.git_repo = GitRepository(self.repo.base_directory)
         self.developer_cache = dict()
+        self.count_change_status = 0
+        self.dict_change_status = dict()
 
         rbts = self.repo.branches_to_track.strip()
         if rbts == '':
@@ -57,6 +65,7 @@ class RepoAnalyzer(object):
         self.repo.status = Repository.Status.ANALYZING
         self.repo.save()
         self.file_cache = dict()
+        self.dict_change_status = dict()
         for branch in self.remote_branches_to_track:
             if self.repo.default_branch == '':
                 self.repo.default_branch = branch
@@ -77,10 +86,9 @@ class RepoAnalyzer(object):
 
         self.create_commits(branch)
         self.__process_files_hotspot_weight(branch)
-        blames_created = []
-        for author in self.developer_cache.values():
-            blames_created.append(Blame(author=author, repository=self.repo, branch=branch, loc=0))
-        Blame.objects.bulk_create(blames_created)
+        with BulkCreateManager(Blame) as blames:
+            for author in self.developer_cache.values():
+                blames.add(Blame(author=author, repository=self.repo, branch=branch, loc=0))
         self.process_fileknowledge(branch)
         self.process_blames(branch)
         return branch
@@ -89,26 +97,48 @@ class RepoAnalyzer(object):
         commit_history = self.git_repo.get_commits(branch=branch.name)
 
         logger.info('BEGIN COMMIT HISTORY')
-        bulk = []
         commit_dict = {}
-        for commit in commit_history:
-            author_email = commit.author.email
-            author = self.__get_or_create_author(author_email, commit.author.name)
-            c = self.create_commit(commit, author, branch)
-            bulk.append(c)
-            commit_dict[commit] = c
-            if len(bulk) == 100:
-                Commit.objects.bulk_create(bulk)
-                for (git_commit, c) in commit_dict.items():
-                    self.create_files(c, branch, git_commit.stats.files, git_commit)
-                bulk = []
-                commit_dict = {}
-
-        Commit.objects.bulk_create(bulk)
-        for (git_commit, commit) in commit_dict.items():
-            self.create_files(commit, branch, git_commit.stats.files, git_commit)
-
+        with BulkCreateManager(Commit) as bulk:
+            for commit in commit_history:
+                author_email = commit.author.email
+                author = self.__get_or_create_author(author_email, commit.author.name)
+                c = self.create_commit(commit, author, branch)
+                bulk.add(c)
+                commit_dict[commit] = c
         logger.info("END COMMIT HISTORY")
+
+        logger.info("BEGIN FILE CREATION")
+        for git_commit in commit_dict.keys():
+            self.create_files(branch, git_commit.stats.files)
+        logger.info("END FILE CREATION")
+
+        logger.info("BEGIN FILE CHANGES CREATION")
+        with BulkCreateManager(FileChange) as bulk:
+            with BulkCreateManager(FileBlame) as blames:
+                for (git_commit, commit) in commit_dict.items():
+                    self.create_file_changes(branch, git_commit.stats.files, commit, git_commit, bulk, blames)
+        logger.info("END FILE CHANGES CREATION")
+
+    def create_files(self, branch, files):
+        with BulkCreateManager(File) as cf:
+            with BulkUpdateManager(File, ['changes']) as uf:
+                for fn in files.keys():
+                    file, created = self.create_file(fn, branch)
+                    file.changes += 1
+                    if created:
+                        cf.add(file)
+                    else:
+                        uf.add(file)
+
+    def create_file_changes(self, branch, files, commit, git_commit, bulk, blames):
+        for fn in files.keys():
+            file = self.file_cache[self.get_file_key(fn, branch)]
+            fc = self.create_file_change_object(commit, file, files[fn], git_commit)
+            bulk.add(fc)
+            if file.exists and file.is_code and fc.change_type in ['A', 'M'] or fc.change_type == '':
+                blame = self.create_file_blame_object(fn, commit, file)
+                if blame:
+                    blames.add(blame)
 
     def process_fileknowledge(self, branch: Branch):
         logger.info("FILE KNOWLEDGE PROCESSING")
@@ -121,150 +151,129 @@ class RepoAnalyzer(object):
         sum_file_knowledge_dict = defaultdict(int)
 
         file_owners = dict()
-        bulk = []
-        for c in Commit.objects.filter(branch=branch, repository=self.repo).select_related("author").order_by("date"):
-            if c.is_merge:
-                continue
-            author = c.author
-
-            add_others = 0
-            add_self = 0
-            del_self = 0
-            del_others = 0
-
-            bulk_fk = []
-            for fc in c.filechange_set.select_related("file").all():
-                if fc.change_type == 'D' or not fc.file.exists:
+        with BulkCreateManager(CommitBlame) as bulk:
+            for c in Commit.objects.filter(branch=branch, repository=self.repo).select_related("author").order_by("date"):
+                if c.is_merge:
                     continue
-                sum_file_knowledge_dict[fc.file.id] += (fc.insertions + fc.deletions)
-                k_index = (fc.file_id, author.id)
+                author = c.author
 
-                if k_index in file_knowledge_dict:
-                    fk = file_knowledge_dict[k_index]
-                    fk.added += fc.insertions
-                    fk.deleted += fc.deletions
-                else:
-                    fk = FileKnowledge(
-                        author=author,
-                        file=fc.file,
-                        added=fc.insertions,
-                        deleted=fc.deletions,
-                        knowledge=0
-                        )
-                    file_knowledge_dict[k_index] = fk
-                    bulk_fk.append(fk)
+                add_others = 0
+                add_self = 0
+                del_self = 0
+                del_others = 0
 
-                if fc.file.id in file_owners:
-                    file_owner = file_owners[fc.file.id]
-                else:
-                    file_owner = author.id
-                if author.id == file_owner:
-                    add_self += fc.insertions
-                    del_self += fc.deletions
-                else:
-                    add_others += fc.insertions
-                    del_others += fc.deletions
+                with BulkCreateManager(FileKnowledge) as bulk_fk:
+                    for fc in c.filechange_set.select_related("file").all():
+                        if fc.change_type == 'D' or not fc.file.exists:
+                            continue
+                        sum_file_knowledge_dict[fc.file.id] += (fc.insertions + fc.deletions)
+                        k_index = (fc.file_id, author.id)
 
-                if author.id == file_owner:
-                    add_self += fc.insertions
-                    del_self += fc.deletions
-                else:
-                    add_others += fc.insertions
-                    del_others += fc.deletions
+                        if k_index in file_knowledge_dict:
+                            fk = file_knowledge_dict[k_index]
+                            fk.added += fc.insertions
+                            fk.deleted += fc.deletions
+                        else:
+                            fk = FileKnowledge(
+                                author=author,
+                                file=fc.file,
+                                added=fc.insertions,
+                                deleted=fc.deletions,
+                                knowledge=0
+                            )
+                            file_knowledge_dict[k_index] = fk
+                            bulk_fk.add(fk)
 
-                val = df.at[fc.file.id, author.id]
-                df.at[fc.file.id, author.id] = val + fc.insertions
+                        if fc.file.id in file_owners:
+                            file_owner = file_owners[fc.file.id]
+                        else:
+                            file_owner = author.id
+                        if author.id == file_owner:
+                            add_self += fc.insertions
+                            del_self += fc.deletions
+                        else:
+                            add_others += fc.insertions
+                            del_others += fc.deletions
 
-                deletions = fc.deletions
-                r = df.loc[fc.file.id]
+                        if author.id == file_owner:
+                            add_self += fc.insertions
+                            del_self += fc.deletions
+                        else:
+                            add_others += fc.insertions
+                            del_others += fc.deletions
 
-                while deletions > 0:
-                    imax = r.idxmax(axis=1)
-                    v = df.at[fc.file.id, imax]
-                    if v >= deletions:
-                        df.at[fc.file.id, imax] = v - deletions
-                        deletions = 0
-                    else:
-                        if v <= 0:
-                            break
-                        deletions -= v
-                        df.at[fc.file.id, imax] = 0
+                        val = df.at[fc.file.id, author.id]
+                        df.at[fc.file.id, author.id] = val + fc.insertions
 
-                imax = r.idxmax(axis=1)
-                if df.at[fc.file.id, imax] > 0:
-                    file_owners[fc.file.id] = imax
+                        deletions = fc.deletions
+                        r = df.loc[fc.file.id]
 
-                if len(bulk_fk) == 100:
-                    FileKnowledge.objects.bulk_create(bulk_fk)
-                    bulk_fk  = []
+                        while deletions > 0:
+                            imax = r.idxmax(axis=1)
+                            v = df.at[fc.file.id, imax]
+                            if v >= deletions:
+                                df.at[fc.file.id, imax] = v - deletions
+                                deletions = 0
+                            else:
+                                if v <= 0:
+                                    break
+                                deletions -= v
+                                df.at[fc.file.id, imax] = 0
 
-            FileKnowledge.objects.bulk_create(bulk_fk)
-            cblame = CommitBlame(
-                commit=c,
-                loc=df[author.id].sum(),
-                add_others=add_others,
-                add_self=add_self,
-                del_others=del_others,
-                del_self=del_self,
-                author=author,
-                date=c.date
-            )
-            bulk.append(cblame)
-            if len(bulk) == 200:
-                CommitBlame.objects.bulk_create(bulk)
-                bulk = []
+                        imax = r.idxmax(axis=1)
+                        if df.at[fc.file.id, imax] > 0:
+                            file_owners[fc.file.id] = imax
 
-        CommitBlame.objects.bulk_create(bulk)
+                cblame = CommitBlame(
+                    commit=c,
+                    loc=df[author.id].sum(),
+                    add_others=add_others,
+                    add_self=add_self,
+                    del_others=del_others,
+                    del_self=del_self,
+                    author=author,
+                    date=c.date
+                )
+                bulk.add(cblame)
+
 
         logger.info("FILE KNOWLEDGE POST PROCESSING")
         # adjust knowledge factor
-        bulk = []
-        for fk in file_knowledge_dict.values():
-            k_total = sum_file_knowledge_dict[fk.file_id]
-            fk.knowledge = min(1.0, (fk.added + fk.deleted) / k_total if k_total else 0.0)
-            bulk.append(fk)
-        FileKnowledge.objects.bulk_update(bulk, ['knowledge'])
+        with BulkUpdateManager(FileKnowledge, ['knowledge']) as bulk:
+            for fk in file_knowledge_dict.values():
+                k_total = sum_file_knowledge_dict[fk.file_id]
+                fk.knowledge = min(1.0, (fk.added + fk.deleted) / k_total if k_total else 0.0)
+                bulk.add(fk)
 
         logger.info("FILE OWNERS")
-        bulk = []
-        for file in self.file_cache.values():
-            file.coupled_files = file.calc_temporal_coupling(file.commits)
-            file.soc = file.calc_soc(file.commits)
-
-            bulk.append(file)
-            if len(bulk) == 250:
-                File.objects.bulk_update(bulk, ['coupled_files', 'soc'])
-                bulk = []
-
-        File.objects.bulk_update(bulk, ['coupled_files', 'soc'])
+        with BulkUpdateManager(File, ['coupled_files', 'soc']) as bulk:
+            for file in self.file_cache.values():
+                file.coupled_files = file.calc_temporal_coupling(file.commits)
+                file.soc = file.calc_soc(file.commits)
+                bulk.add(file)
         logger.info("END FILE OWNERS")
 
     def process_blames(self, branch: Branch):
         blames = Blame.objects.filter(repository=self.repo, branch=branch)
-        bulk = []
-        for blame in blames:
-            commits = Commit.objects.filter(
-                branch=branch,
-                repository=self.repo,
-                author=blame.author
-            ).order_by("date")
+        with BulkUpdateManager(FileBlame, ['loc']) as bulk:
+            for blame in blames:
+                commits = Commit.objects.filter(
+                    branch=branch,
+                    repository=self.repo,
+                    author=blame.author
+                ).order_by("date")
 
-            file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits)
-            fd = dict()
-            for fb in file_blames:
-                if fb.file not in fd:
-                    fd[fb.file] = (fb.loc, fb.commit.date)
-                else:
-                    (loc, date) = fd[fb.file]
-                    if date < fb.commit.date:
+                file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits)
+                fd = dict()
+                for fb in file_blames:
+                    if fb.file not in fd:
                         fd[fb.file] = (fb.loc, fb.commit.date)
-            blame.loc = sum([loc for (loc, d) in fd.values()])
-            bulk.append(blame)
-            if len(bulk) == 250:
-                FileBlame.objects.bulk_update(bulk, ['loc'])
-                bulk = []
-
-        FileBlame.objects.bulk_update(bulk, ['loc'])
+                    else:
+                        (loc, date) = fd[fb.file]
+                        if date < fb.commit.date:
+                            fd[fb.file] = (fb.loc, fb.commit.date)
+                blame.loc = sum([loc for (loc, d) in fd.values()])
+                bulk.add(blame)
 
         (total_blame, total_insertions, total_deletions) = calc_total_blame(self.repo, branch)
         for blame in blames:
@@ -310,37 +319,6 @@ class RepoAnalyzer(object):
             original_author=author
         )
 
-    def create_files(self, commit, branch, files, git_commit):
-        created_files = []
-        updated_files = []
-        for fn in files.keys():
-            file, created = self.create_file(fn, branch)
-            file.changes += 1
-            if created:
-                created_files.append(file)
-            else:
-                updated_files.append(file)
-
-        File.objects.bulk_create(created_files)
-        File.objects.bulk_update(updated_files, ['changes'])
-
-        created_fcs = []
-        for f in updated_files:
-            self.file_cache[self.get_file_key(f.filename, branch)] = f
-
-        created_file_blames = []
-        for f in created_files:
-            self.file_cache[self.get_file_key(f.filename, branch)] = f
-            fn = f.filename
-            fc = self.create_file_change_object(commit, f, files[fn], git_commit)
-            created_fcs.append(fc)
-            if f.exists and fc.change_type in ['A', 'M'] or fc.change_type == '':
-                blame = self.create_file_blame_object(fn, commit, f)
-                if blame:
-                    created_file_blames.append(blame)
-        FileChange.objects.bulk_create(created_fcs)
-        FileBlame.objects.bulk_create(created_file_blames)
-
     def get_file_key(self, filename, branch):
         pkey = str(Path(self.repo.base_directory) / Path(filename))
         return pkey + '@' + branch.name
@@ -359,19 +337,22 @@ class RepoAnalyzer(object):
             change_type=change_type
         )
 
-    @staticmethod
-    def __det_change_status(commit, parents):
+    def __det_change_status(self, commit, parents):
         for parent in parents:
+            key = (str(commit), str(parent))
+            if key in self.dict_change_status:
+                return self.dict_change_status[key]
             for change in parent.diff(commit):
+                self.dict_change_status[key] = change.change_type
                 return change.change_type
         return ""
 
     def create_file(self, filename, branch):
         pkey = str(Path(self.repo.base_directory) / Path(filename))
         key = pkey + '@' + branch.name
-        created = False
         if key in self.file_cache:
-            return self.file_cache[key], created
+            file = self.file_cache[key]
+            return self.file_cache[key], file.id is None
 
         p = Path(filename)
         parent = p.parent
