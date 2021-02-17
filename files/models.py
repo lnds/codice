@@ -54,6 +54,8 @@ class File(models.Model):
     lines = models.IntegerField(default=0)
     coupled_files = models.IntegerField(default=0)
     soc = models.IntegerField(default=0)
+    changes = models.IntegerField(default=0)
+    hotspot_weight = models.FloatField(default=0.0)
 
     path = models.ForeignKey(FilePath, on_delete=models.CASCADE)
     repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
@@ -82,9 +84,7 @@ class File(models.Model):
 
     @staticmethod
     def max_file_changes(repo, branch):
-        return File.objects.filter(repository=repo, branch=branch).annotate(
-            changes=Count('filechange')
-        ).aggregate(
+        return File.objects.filter(repository=repo, branch=branch).aggregate(
             max=Max('changes')
         )['max'] or 1
 

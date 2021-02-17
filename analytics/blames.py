@@ -17,7 +17,7 @@ def calc_total_ins_and_dels(repository, branch):
 # see https://git-scm.com/docs/git-diff
 # see https://github.com/rbanks54/GitStats/blob/master/GitStats.Console/ImpactAnalyser.cs
 def update_blame_object(blame: dict, dev: Developer, repo: Repository, branch: Branch, commits,
-                        total_blame, total_insertions, total_deletions):
+                        total_blame, total_insertions, total_deletions, for_bulk=False):
     """update a blame object, useful for statistics or when an alias is updated"""
     commits_by_dev = [c for c in commits if c.author.id == dev.id and not c.is_merge]
     commits_by_dev.sort(key=lambda x: x.date, reverse=False)
@@ -123,5 +123,8 @@ def update_blame_object(blame: dict, dev: Developer, repo: Repository, branch: B
                            + blame["raw_throughput"])/3.0
     blame["commits"] = commits
     blame["changes"] = changes
-    blame, created = Blame.objects.update_or_create(defaults=blame, author=dev, repository=repo, branch=branch)
+    if for_bulk:
+        blame = Blame(author=dev, repository=repo, branch=branch, **blame)
+    else:
+        blame, created = Blame.objects.update_or_create(defaults=blame, author=dev, repository=repo, branch=branch)
     return blame

@@ -60,8 +60,7 @@ class FileList(FileMixin, ListView):
                 .annotate(changes=Count('filechange', distinct=True))
         else:
             query = File.objects.filter(repository__in=self.repos, branch__in=self.branches, is_code=True) \
-                .annotate(authors=Count('filechange__commit__author', distinct=True))\
-                .annotate(changes=Count('filechange', distinct=True))
+                .annotate(authors=Count('filechange__commit__author', distinct=True))
 
         self.search_query = self.request.GET['q'] if 'q' in self.request.GET else None
         if self.search_query:

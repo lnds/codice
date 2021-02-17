@@ -1,6 +1,5 @@
 import traceback
 from collections import defaultdict
-from itertools import islice
 from pathlib import Path
 
 import pandas as pd
@@ -9,7 +8,7 @@ from django.db.models import Max, F
 from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState
 
-from analytics.blames import calc_total_blame, update_blame_object
+from analytics.blames import update_blame_object, calc_total_ins_and_dels
 from analytics.bulk import BulkCreateManager, BulkUpdateManager
 from authentication.models import User
 from commits.models import Commit, CommitBlame
@@ -84,6 +83,8 @@ class RepoAnalyzer(object):
         branch, created = Branch.objects.get_or_create(name=branch_name, repository=self.repo)
         logger.info('BRANCH %s CREATED: %s', branch_name, created)
 
+        self.dict_change_status = dict()
+
         self.create_commits(branch)
         self.__process_files_hotspot_weight(branch)
         with BulkCreateManager(Blame) as blames:
@@ -98,7 +99,7 @@ class RepoAnalyzer(object):
 
         logger.info('BEGIN COMMIT HISTORY')
         commit_dict = {}
-        with BulkCreateManager(Commit, chunk_size=1000) as bulk:
+        with BulkCreateManager(Commit, chunk_size=2000) as bulk:
             for commit in commit_history:
                 author_email = commit.author.email
                 author = self.__get_or_create_author(author_email, commit.author.name)
@@ -117,15 +118,15 @@ class RepoAnalyzer(object):
         logger.info("END FILE CREATION")
 
         logger.info("BEGIN FILE CHANGES CREATION")
-        with BulkCreateManager(FileChange) as bulk:
-            with BulkCreateManager(FileBlame) as blames:
+        with BulkCreateManager(FileChange, chunk_size=1000) as bulk:
+            with BulkCreateManager(FileBlame, chunk_size=1000) as blames:
                 for (git_commit, commit) in commit_dict.items():
                     self.create_file_changes(branch, git_commit.stats.files, commit, git_commit, bulk, blames)
         logger.info("END FILE CHANGES CREATION")
 
     def create_files(self, branch, files):
-        with BulkCreateManager(File) as cf:
-            with BulkUpdateManager(File, ['changes']) as uf:
+        with BulkCreateManager(File, chunk_size=1000) as cf:
+            with BulkUpdateManager(File, ['changes'], chunk_size=1000) as uf:
                 for fn in files.keys():
                     file, created = self.create_file(fn, branch)
                     file.changes += 1
@@ -155,8 +156,9 @@ class RepoAnalyzer(object):
         sum_file_knowledge_dict = defaultdict(int)
 
         file_owners = dict()
-        with BulkCreateManager(CommitBlame) as bulk:
-            for c in Commit.objects.filter(branch=branch, repository=self.repo).select_related("author").order_by("date"):
+        with BulkCreateManager(CommitBlame, chunk_size=1000) as bulk:
+            for c in Commit.objects.filter(branch=branch, repository=self.repo).select_related("author").order_by(
+                    "date"):
                 if c.is_merge:
                     continue
                 author = c.author
@@ -166,7 +168,7 @@ class RepoAnalyzer(object):
                 del_self = 0
                 del_others = 0
 
-                with BulkCreateManager(FileKnowledge) as bulk_fk:
+                with BulkCreateManager(FileKnowledge, chunk_size=1000) as bulk_fk:
                     for fc in c.filechange_set.select_related("file"):
                         if fc.change_type == 'D' or not fc.file.exists:
                             continue
@@ -249,7 +251,7 @@ class RepoAnalyzer(object):
                 bulk.add(fk)
 
         logger.info("FILE OWNERS")
-        with BulkUpdateManager(File, ['coupled_files', 'soc']) as bulk:
+        with BulkUpdateManager(File, ['coupled_files', 'soc'], chunk_size=1000) as bulk:
             for file in self.file_cache.values():
                 file.coupled_files = file.calc_temporal_coupling(file.commits)
                 file.soc = file.calc_soc(file.commits)
@@ -258,8 +260,12 @@ class RepoAnalyzer(object):
 
     def process_blames(self, branch: Branch):
         blames = Blame.objects.filter(repository=self.repo, branch=branch)
-        with BulkUpdateManager(FileBlame, ['loc']) as bulk:
+        total_sum_loc = 0
+        locs = defaultdict(int)
+        blames_id = dict()
+        with BulkUpdateManager(FileBlame, ['loc'], chunk_size=1000) as bulk:
             for blame in blames:
+                blames_id[blame.author] = blame.id
                 commits = Commit.objects.filter(
                     branch=branch,
                     repository=self.repo,
@@ -275,17 +281,26 @@ class RepoAnalyzer(object):
                         (loc, date) = fd[fb.file]
                         if date < fb.commit.date:
                             fd[fb.file] = (fb.loc, fb.commit.date)
-                blame.loc = sum([loc for (loc, d) in fd.values()])
+                sum_loc = sum([loc for (loc, d) in fd.values()])
+                blame.loc = sum_loc
+                total_sum_loc += sum_loc
+                locs[blame.author] += sum_loc
                 bulk.add(blame)
 
-        (total_blame, total_insertions, total_deletions) = calc_total_blame(self.repo, branch)
-        for blame in blames:
-            commits = Commit.objects.filter(
-                branch=branch,
-                repository=self.repo,
-                author=blame.author
-            ).order_by("date")
-            update_blame_object(blame, blame.author, commits, total_blame, total_insertions, total_deletions)
+        (total_insertions, total_deletions) = calc_total_ins_and_dels(self.repo, branch)
+        with BulkUpdateManager(Blame, ["loc", "impact", "log_impact", "ownership", "lines", "insertions", "deletions",
+                                       "add_self", "add_others", "del_self", "del_others", "net", "work_self",
+                                       "work_others", "raw_throughput", "raw_churn", "net_avg", "churn", "throughput",
+                                       "self_churn", "self_throughput", "commits", "changes"]) as bulk:
+            for author in locs.keys():
+                commits = Commit.objects.filter(
+                    branch=branch,
+                    repository=self.repo,
+                    author=author
+                ).order_by("date")
+                bulk.add(update_blame_object({"id": blames_id[author], "loc": float(locs[author])}, author, self.repo,
+                                             branch, commits, total_sum_loc, total_insertions, total_deletions,
+                                             for_bulk=True))
 
     def __get_or_create_author(self, email, name):
         cache_key = (email, self.owner)
@@ -332,7 +347,9 @@ class RepoAnalyzer(object):
         change_type = self.__det_change_status(git_commit, git_commit.parents)
         return FileChange(
             file=file,
+            author=commit.author,
             commit=commit,
+            date=commit.date,
             repository=commit.repository,
             branch=commit.branch,
             insertions=ins,
