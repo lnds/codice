@@ -387,39 +387,38 @@ class RepoAnalyzer(object):
         try:
             path = Path(pkey)
             exists = path.is_file()
-
             if not exists:
                 file = self.create_file_object(filename, branch, file_path, name, False)
             else:
                 try:
-                    analysis = SourceAnalysis.from_file(pkey, self.repo.name)
-                    empty = analysis.state == SourceState.empty.name
-                    binary = analysis.state == SourceState.binary.name
-                    indent_complexity = calculate_complexity_in(pkey) if not empty and not binary else 0
-                    is_code = (not binary) and (not empty) and language_is_code(analysis.language)
-                    lines = 0
-                    if not binary:
-                        encoding = detect_encoding(path)
-                        with open(path, "r", newline='', encoding=encoding, errors='ignore') as fd:
-                            lines = sum(1 for _ in fd)
+                    encoding = detect_encoding(path)
+                    binary = is_binary_file(path)
+
                     file = File(
                         filename=filename,
                         repository=self.repo,
                         branch=branch,
                         path=file_path,
                         name=name,
-                        language=analysis.language,
-                        code=analysis.code,
-                        doc=analysis.documentation,
-                        blanks=analysis.empty,
-                        empty=empty,
-                        strings=analysis.string,
                         binary=binary,
                         exists=True,
-                        is_code=is_code,
-                        indent_complexity=indent_complexity,
-                        lines=lines
                     )
+                    if not binary:
+                        analysis = SourceAnalysis.from_file(pkey, self.repo.name, encoding='utf-8', fallback_encoding=encoding)
+                        empty = analysis.state == SourceState.empty.name
+                        indent_complexity = calculate_complexity_in(pkey) if not empty and not binary else 0
+                        is_code = (not binary) and (not empty) and language_is_code(analysis.language)
+                        with open(path, "r", newline='', encoding=encoding, errors='ignore') as fd:
+                            lines = sum(1 for _ in fd) or 0
+                        file.language = analysis.language
+                        file.code = analysis.code
+                        file.doc = analysis.documentation
+                        file.blanks = analysis.empty
+                        file.empty = empty
+                        file.strings = analysis.string
+                        file.is_code = is_code
+                        file.indent_complexity = indent_complexity
+                        file.lines = lines
                 except Exception as e:
                     file = self.create_file_object(filename, branch, file_path, name, True)
                     logger.info('error on {}'.format(pkey))
