@@ -75,8 +75,13 @@ class FileList(FileMixin, ListView):
         context['sort'] = sort
         filter_param = self.request.GET['filter'] if 'filter' in self.request.GET else None
         context['filter'] = filter_param
-        languages = File.objects.filter(repository__in=self.repos, branch__in=self.branches, is_code=True) \
-            .values('language').annotate(n=Count('language')).order_by('language')
+        if repo:
+            languages = File.objects.filter(repository=repo, branch__in=self.branches, is_code=True) \
+                .values('language').annotate(n=Count('language')).order_by('language')
+        else:
+            languages = File.objects.filter(repository__in=self.repos, branch__in=self.branches, is_code=True) \
+                .values('language').annotate(n=Count('language')).order_by('language')
+
         context['languages'] = languages
         context['filter_lang'] = self.filter_lang
         context['search_query'] = self.search_query
