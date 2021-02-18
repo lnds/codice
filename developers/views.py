@@ -181,10 +181,10 @@ class DeveloperProfile(DeveloperMixin, DetailView):
         files_deleted = 0
         for repo in self.repos:
             branch = repo.get_default_branch()
-            fc = FileChange.objects.filter(repository=repo, branch=branch, commit__author = self.object,
+            fc = FileChange.objects.filter(commit__repository=repo, commit__branch=branch, commit__author = self.object,
                                            change_type__in=["A", "C"]).distinct().count()
             files_created += fc
-            fd = FileChange.objects.filter(repository=repo, branch=branch, commit__author = self.object,
+            fd = FileChange.objects.filter(commit__repository=repo, commit__branch=branch, commit__author = self.object,
                                            change_type__in=["D"]).distinct().count()
             files_deleted += fd
             co = Commit.objects.filter(repository=repo, author=self.object, branch=branch).count()
@@ -193,7 +193,7 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 
                            insertions=Sum('insertions'), deletions=Sum('deletions'), net=Sum('net'))
 
-            ch = FileChange.objects.filter(repository=repo, commit__author=self.object, branch=branch).count()
+            ch = FileChange.objects.filter(commit__repository=repo, commit__author=self.object, branch=branch).count()
             repo_data.append({'repo': repo, 'files_created': fc, 'files_deleted': fd, 'commits': co, 'changes': ch,
                               'insertions': cod['insertions'] or 'lost',
                               'deletions': cod['deletions'] or 'lost',

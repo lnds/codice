@@ -253,7 +253,7 @@ class RepoAnalyzer(object):
         logger.info("FILE OWNERS")
         with BulkUpdateManager(File, ['coupled_files', 'soc'], chunk_size=1000) as bulk:
             for file in self.file_cache.values():
-                file.coupled_files = file.calc_temporal_coupling(file.commits)
+                file.coupled_files = file.count_coupled_files(file.commits)
                 file.soc = file.calc_soc(file.commits)
                 bulk.add(file)
         logger.info("END FILE OWNERS")
@@ -263,29 +263,26 @@ class RepoAnalyzer(object):
         total_sum_loc = 0
         locs = defaultdict(int)
         blames_id = dict()
-        with BulkUpdateManager(FileBlame, ['loc'], chunk_size=1000) as bulk:
-            for blame in blames:
-                blames_id[blame.author] = blame.id
-                commits = Commit.objects.filter(
-                    branch=branch,
-                    repository=self.repo,
-                    author=blame.author
-                ).order_by("date")
+        for blame in blames:
+            blames_id[blame.author] = blame.id
+            commits = Commit.objects.filter(
+                branch=branch,
+                repository=self.repo,
+                author=blame.author
+            ).order_by("date")
 
-                file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits)
-                fd = dict()
-                for fb in file_blames:
-                    if fb.file not in fd:
+            file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits)
+            fd = dict()
+            for fb in file_blames:
+                if fb.file not in fd:
+                    fd[fb.file] = (fb.loc, fb.commit.date)
+                else:
+                    (loc, date) = fd[fb.file]
+                    if date < fb.commit.date:
                         fd[fb.file] = (fb.loc, fb.commit.date)
-                    else:
-                        (loc, date) = fd[fb.file]
-                        if date < fb.commit.date:
-                            fd[fb.file] = (fb.loc, fb.commit.date)
-                sum_loc = sum([loc for (loc, d) in fd.values()])
-                blame.loc = sum_loc
-                total_sum_loc += sum_loc
-                locs[blame.author] += sum_loc
-                bulk.add(blame)
+            sum_loc = sum([loc for (loc, d) in fd.values()])
+            total_sum_loc += sum_loc
+            locs[blame.author] += sum_loc
 
         (total_insertions, total_deletions) = calc_total_ins_and_dels(self.repo, branch)
         with BulkUpdateManager(Blame, ["loc", "impact", "log_impact", "ownership", "lines", "insertions", "deletions",
@@ -350,8 +347,6 @@ class RepoAnalyzer(object):
             author=commit.author,
             commit=commit,
             date=commit.date,
-            repository=commit.repository,
-            branch=commit.branch,
             insertions=ins,
             deletions=dels,
             change_type=change_type

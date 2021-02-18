@@ -120,7 +120,7 @@ class Repository(models.Model):
         from files.models import FileChange
         duration = ExpressionWrapper(F('max_date') - F('min_date'), output_field=fields.DurationField())
         file_changes = FileChange.objects.filter(
-            repository=self, branch=branch,
+            commit__repository=self, commit__branch=branch,
             commit__author=OuterRef("author")).order_by()
         file_changes_count = file_changes.annotate(changes=Count('*')).values('changes')
         q = Commit.objects.filter(repository=self, branch=branch,

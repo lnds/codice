@@ -110,16 +110,15 @@ class File(models.Model):
             .order_by('-date').all()
         return commits
 
-    def calc_temporal_coupling(self, commits):
-        return FileChange.objects.filter(commit__in=commits).exclude(file__filename=self.filename).count()
-        # return len(self.get_coupled_files(commits))
+    def count_coupled_files(self, commits):
+        return FileChange.objects.filter(commit__in=commits).values('file_id').exclude(file_id=self.id).distinct().count()
 
     def get_coupled_files(self, commits):
         shared_commits = {}
         count_commits = 0
         for c in commits:
             count_commits += 1
-            files = File.objects.filter(filechange__commit=c).exclude(filename=self.filename)
+            files = File.objects.filter(filechange__commit=c).exclude(pk=self.pk)
             for f in files:
                 if f in shared_commits:
                     shared_commits[f] += 1
@@ -132,7 +131,7 @@ class File(models.Model):
 
     # sum of temporal coupling, as defined by Tornhill, chapter 8, page 78
     def calc_soc(self, commits):
-        return File.objects.filter(filechange__commit__in=commits).exclude(pk=self.pk).count()
+        return FileChange.objects.filter(commit__in=commits).values('file_id').exclude(file_id=self.id).count()
 
     def get_last_change(self):
         return self.filechange_set.last()
@@ -168,8 +167,6 @@ class FileChange(models.Model):
     date = models.DateTimeField()
     author = models.ForeignKey(Developer, on_delete=models.CASCADE)
     commit = models.ForeignKey(Commit, on_delete=models.CASCADE)
-    repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
 
     def __str__(self):
         return "'{}' {} {} => {} {}".format(self.change_type, self.file.filename, self.file.id,
@@ -179,8 +176,17 @@ class FileChange(models.Model):
         db_table = 'codice_filechange'
         unique_together = (('file', 'commit'),)
         indexes = [
-            models.Index(fields=['commit'])
+            models.Index(fields=['commit']),
+            models.Index(fields=['file']),
         ]
+
+    @property
+    def repository(self):
+        return self.commit.repository
+
+    @property
+    def branch(self):
+        return self.commit.branch
 
 
 class FileBlame(models.Model):

@@ -190,7 +190,7 @@ def get_dev_activity_chart(dev, repos):
 
     }
 
-    stats = FileChange.objects.filter(repository__in=repos, commit__author=dev)\
+    stats = FileChange.objects.filter(commit__repository__in=repos, commit__author=dev)\
         .annotate(d=TruncDate('commit__date')) \
         .values('d').annotate(changes=Count('id', distinct=True), commits=Count('commit__id', distinct=True))\
         .order_by('d')
@@ -272,7 +272,7 @@ def dev_commits_graph_data(dev, repos):
 
 def dev_changes_graph_data(dev, repos):
     limit_graph = 300
-    stats = FileChange.objects.filter(repository__in=repos, commit__author=dev)\
+    stats = FileChange.objects.filter(commit__repository__in=repos, commit__author=dev)\
         .annotate(d=TruncDate('commit__date')) \
         .values('d').annotate(total=Count('id', distinct=True)).order_by('d')
     stats = stats[max(limit_graph, 0):]

@@ -151,4 +151,4 @@ def get_developer_commits(dev, repos, branches):
 
 def get_developer_total_changes(dev, repos):
     commits = get_developer_commits(dev, repos)
-    return FileChange.objects.filter(repository__in=commits).aggregate(changes=Count('id'))['changes']
+    return FileChange.objects.filter(commit__repository__in=commits).aggregate(changes=Count('id'))['changes']
