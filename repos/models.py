@@ -92,7 +92,11 @@ class Repository(models.Model):
 
     def files_count(self):
         return self.file_set.filter(branch=self.get_default_branch(), is_code=True, exists=True).count()
-    
+
+    def filechanges_count(self):
+        from files.models import FileChange
+        return FileChange.objects.filter(commit__in=self.commit_set.all()).count()
+
     def branches_count(self):
         return self.branch_set.count()
 

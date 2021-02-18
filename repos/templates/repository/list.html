@@ -71,10 +71,10 @@
         <td class="text-align-right">
             {% if repo.ready %}
                 <a href="#" class="btn btn-block btn-warning">
-                    {{ repo.filechange_set.count|intcomma }}
+                    {{ repo.filechanges_count|intcomma }}
                 </a>
             {% else %}
-                {{ repo.filechange_set.count|intcomma }}
+                {{ repo.filechanges_count|intcomma }}
             {% endif %}
         </td>
         <td class="text-align-right">

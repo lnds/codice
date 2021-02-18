@@ -13,6 +13,14 @@ class Commit(models.Model):
     deletions = models.IntegerField()
     net = models.IntegerField()
     is_merge = models.BooleanField(default=False)
+
+    # blame part
+    loc = models.IntegerField(default=0)
+    add_self = models.IntegerField(default=0)
+    add_others = models.IntegerField(default=0)
+    del_self = models.IntegerField(default=0)
+    del_others = models.IntegerField(default=0)
+
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
     author = models.ForeignKey(Developer, on_delete=models.CASCADE)
     repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
@@ -30,21 +38,3 @@ class Commit(models.Model):
 
     def __str__(self):
         return "{} @ {}: {}".format(self.hexsha[-6:], self.date,  self.message[:20])
-
-
-class CommitBlame(models.Model):
-    loc = models.IntegerField()
-    add_self = models.IntegerField(default=0)
-    add_others = models.IntegerField(default=0)
-    del_self = models.IntegerField(default=0)
-    del_others = models.IntegerField(default=0)
-    date = models.DateTimeField()
-    author = models.ForeignKey(Developer, on_delete=models.CASCADE)
-    commit = models.ForeignKey(Commit, on_delete=models.CASCADE)
-
-    class Meta:
-        db_table = 'codice_commitblame'
-
-        indexes = [
-            models.Index(fields=['commit'])
-        ]

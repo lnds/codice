@@ -1,7 +1,7 @@
 from math import log10
 
 import numpy
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from commits.models import Commit
 from developers.models import Blame, Developer
 from repos.models import Repository, Branch
@@ -74,16 +74,10 @@ def update_blame_object(blame: dict, dev: Developer, repo: Repository, branch: B
         deletions = deletions + com.deletions
         net = net + com.net
 
-        rcb = com.commitblame_set.aggregate(sum_add_self=Sum('add_self'), sum_add_others=Sum('add_others'),
-                                            sum_del_self=Sum('del_self'), sum_del_others=Sum('del_others'))
-        sum_add_self = rcb['sum_add_self']
-        sum_del_self = rcb['sum_del_self']
-        sum_add_others = rcb['sum_add_others']
-        sum_del_others = rcb['sum_del_others']
-        add_self += sum_add_self
-        add_others += sum_add_others
-        del_self += sum_del_self
-        del_others += sum_del_others
+        add_self += com.add_self
+        add_others += com.add_others
+        del_self += com.del_self
+        del_others += com.del_others
 
     total_lines = total_insertions + total_deletions
     old_code_weighting = total_edited / total_lines if total_lines else 0.0
