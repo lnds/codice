@@ -193,7 +193,7 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 
                            insertions=Sum('insertions'), deletions=Sum('deletions'), net=Sum('net'))
 
-            ch = FileChange.objects.filter(commit__repository=repo, commit__author=self.object, branch=branch).count()
+            ch = FileChange.objects.filter(commit__repository=repo, commit__author=self.object, commit__branch=branch).count()
             repo_data.append({'repo': repo, 'files_created': fc, 'files_deleted': fd, 'commits': co, 'changes': ch,
                               'insertions': cod['insertions'] or 'lost',
                               'deletions': cod['deletions'] or 'lost',

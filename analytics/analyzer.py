@@ -56,6 +56,7 @@ class RepoAnalyzer(object):
         self.filepath_cache = dict()
         self.file_cache = dict()
         self.git_repo = GitRepository(self.repo.base_directory)
+        self.base_path = Path(self.repo.base_directory)
         self.developer_cache = dict()
         self.count_change_status = 0
         self.dict_change_status = dict()
@@ -95,7 +96,7 @@ class RepoAnalyzer(object):
         self.dict_change_status = dict()
 
         self.create_commits(branch)
-        self.__process_files_hotspot_weight(branch)
+        self.process_files_hotspot_weight(branch)
         with BulkCreateManager(Blame) as blames:
             for author in self.developer_cache.values():
                 blames.add(Blame(author=author, repository=self.repo, branch=branch, loc=0))
@@ -109,14 +110,15 @@ class RepoAnalyzer(object):
         logger.info('BEGIN COMMIT HISTORY')
         commit_dict = {}
         with BulkCreateManager(Commit, chunk_size=2000) as bulk:
-            for commit in commit_history:
-                author_email = commit.author.email
-                author = self.__get_or_create_author(author_email, commit.author.name)
-                c = self.create_commit(commit, author, branch)
-                commit_dict[commit] = c
-                if bulk.add(c):
-                    self.file_creation(commit_dict, branch)
-                    commit_dict = {}
+            for git_commit in commit_history:
+                if self.is_git_commit_viable(git_commit):
+                    author_email = git_commit.author.email
+                    author = self.get_or_create_author(author_email, git_commit.author.name)
+                    c = self.create_commit(git_commit, author, branch)
+                    commit_dict[git_commit] = c
+                    if bulk.add(c):
+                        self.file_creation(commit_dict, branch)
+                        commit_dict = {}
         self.file_creation(commit_dict, branch)
         logger.info("END COMMIT HISTORY")
 
@@ -137,19 +139,21 @@ class RepoAnalyzer(object):
             with BulkUpdateManager(File, ['changes'], chunk_size=1000) as uf:
                 for fn in files.keys():
                     file, created = self.create_file(fn, branch)
-                    file.changes += 1
-                    if created:
-                        cf.add(file)
-                    else:
-                        uf.add(file)
+                    if file.exists and file.is_code:
+                        file.changes += 1
+                        if created:
+                            cf.add(file)
+                        else:
+                            uf.add(file)
 
     def create_file_changes(self, branch, files, commit, git_commit, bulk):
         for fn in files.keys():
             file = self.file_cache[self.get_file_key(fn, branch)]
-            fc = self.create_file_change_object(commit, file, files[fn], git_commit)
-            bulk.add(fc)
-            if file.exists and file.is_code and fc.change_type in ['A', 'M'] or fc.change_type == '':
-                self.create_file_blame_object(fn, commit, file)
+            if file.exists and file.is_code:
+                fc = self.create_file_change_object(commit, file, files[fn], git_commit)
+                bulk.add(fc)
+                if fc.change_type in ['A', 'M'] or fc.change_type == '':
+                    self.create_file_blame_object(fn, commit, file)
 
     def process_fileknowledge(self, branch: Branch):
         logger.info("FILE KNOWLEDGE PROCESSING")
@@ -259,9 +263,10 @@ class RepoAnalyzer(object):
         logger.info("FILE OWNERS")
         with BulkUpdateManager(File, ['coupled_files', 'soc'], chunk_size=1000) as bulk:
             for file in self.file_cache.values():
-                file.coupled_files = file.count_coupled_files(file.commits)
-                file.soc = file.calc_soc(file.commits)
-                bulk.add(file)
+                if file.exists and file.is_code:
+                    file.coupled_files = file.count_coupled_files(file.commits)
+                    file.soc = file.calc_soc(file.commits)
+                    bulk.add(file)
         logger.info("END FILE OWNERS")
 
     def process_blames(self, branch: Branch):
@@ -308,7 +313,7 @@ class RepoAnalyzer(object):
                                              branch, commits, total_sum_loc, total_insertions, total_deletions,
                                              for_bulk=True))
 
-    def __get_or_create_author(self, email, name):
+    def get_or_create_author(self, email, name):
         cache_key = (email, self.owner)
         if cache_key not in self.developer_cache:
             dev, created = Developer.objects.get_or_create(email=email, owner=self.owner, defaults={'name': name})
@@ -317,7 +322,11 @@ class RepoAnalyzer(object):
             return dev
         return self.developer_cache[cache_key]
 
+    def is_git_commit_viable(self, git_commit):
+        return len([1 for fn in git_commit.stats.files.keys() if Path(self.base_path / Path(fn)).exists()]) > 0
+
     def create_commit(self, git_commit, author, branch):
+
         hexsha = git_commit.hexsha
         date = git_commit.authored_datetime
         msg = git_commit.message
@@ -350,7 +359,7 @@ class RepoAnalyzer(object):
     def create_file_change_object(self, commit: Commit, file: File, fc, git_commit):
         ins = int(fc['insertions'])
         dels = int(fc['deletions'])
-        change_type = self.__det_change_status(git_commit, git_commit.parents)
+        change_type = self.det_change_status(git_commit, git_commit.parents)
         return FileChange(
             file=file,
             author=commit.author,
@@ -361,7 +370,7 @@ class RepoAnalyzer(object):
             change_type=change_type
         )
 
-    def __det_change_status(self, commit, parents):
+    def det_change_status(self, commit, parents):
         for parent in parents:
             key = (str(commit), str(parent))
             if key in self.dict_change_status:
@@ -372,7 +381,7 @@ class RepoAnalyzer(object):
         return ""
 
     def create_file(self, filename, branch):
-        pkey = str(Path(self.repo.base_directory) / Path(filename))
+        pkey = str(self.base_path / Path(filename))
         key = pkey + '@' + branch.name
         if key in self.file_cache:
             file = self.file_cache[key]
@@ -404,7 +413,8 @@ class RepoAnalyzer(object):
                         exists=True,
                     )
                     if not binary:
-                        analysis = SourceAnalysis.from_file(pkey, self.repo.name, encoding='utf-8', fallback_encoding=encoding)
+                        analysis = SourceAnalysis.from_file(pkey, self.repo.name, encoding='utf-8',
+                                                            fallback_encoding=encoding)
                         empty = analysis.state == SourceState.empty.name
                         indent_complexity = calculate_complexity_in(pkey) if not empty and not binary else 0
                         is_code = (not binary) and (not empty) and language_is_code(analysis.language)
@@ -494,7 +504,7 @@ class RepoAnalyzer(object):
 
         self.blame_loc[commit.id] = FileBlame(file, commit, loc)
 
-    def __process_files_hotspot_weight(self, branch: Branch):
+    def process_files_hotspot_weight(self, branch: Branch):
         max_file_changes = File.objects.filter(repository=self.repo, branch=branch) \
                                .aggregate(max=Max('changes'))['max'] or 1
         File.objects.filter(
