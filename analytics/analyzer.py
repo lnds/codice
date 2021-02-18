@@ -1,19 +1,20 @@
 import traceback
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
 from pygount import SourceAnalysis
 from django.db.models import Max, F
 from django.utils.timezone import make_aware, is_aware
-from pygount.analysis import SourceState
+from pygount.analysis import SourceState, is_binary_file
 
 from analytics.blames import update_blame_object, calc_total_ins_and_dels
 from analytics.bulk import BulkCreateManager, BulkUpdateManager
 from authentication.models import User
 from commits.models import Commit, CommitBlame
 from developers.models import Developer, Blame
-from files.models import File, FilePath, FileChange, FileBlame, FileKnowledge
+from files.models import File, FilePath, FileChange, FileKnowledge
 from git_interface.gitobjects import GitRepository
 from analytics.complexity import calculate_complexity_in
 from repos.models import Repository, Branch
@@ -39,6 +40,13 @@ def process_repo_objects(repo: Repository):
 BULK_SIZE = 500
 
 
+@dataclass
+class FileBlame:
+    file: File
+    commit: Commit
+    loc: int
+
+
 class RepoAnalyzer(object):
     count_change_status = 0
 
@@ -51,7 +59,7 @@ class RepoAnalyzer(object):
         self.developer_cache = dict()
         self.count_change_status = 0
         self.dict_change_status = dict()
-
+        self.blame_loc = dict()
         rbts = self.repo.branches_to_track.strip()
         if rbts == '':
             self.remote_branches_to_track = [self.repo.default_branch if self.repo.default_branch else 'master']
@@ -65,6 +73,7 @@ class RepoAnalyzer(object):
         self.repo.save()
         self.file_cache = dict()
         self.dict_change_status = dict()
+        self.blame_loc = dict()
         for branch in self.remote_branches_to_track:
             if self.repo.default_branch == '':
                 self.repo.default_branch = branch
@@ -119,9 +128,8 @@ class RepoAnalyzer(object):
 
         logger.info("BEGIN FILE CHANGES CREATION")
         with BulkCreateManager(FileChange, chunk_size=1000) as bulk:
-            with BulkCreateManager(FileBlame, chunk_size=1000) as blames:
-                for (git_commit, commit) in commit_dict.items():
-                    self.create_file_changes(branch, git_commit.stats.files, commit, git_commit, bulk, blames)
+            for (git_commit, commit) in commit_dict.items():
+                self.create_file_changes(branch, git_commit.stats.files, commit, git_commit, bulk)
         logger.info("END FILE CHANGES CREATION")
 
     def create_files(self, branch, files):
@@ -135,15 +143,13 @@ class RepoAnalyzer(object):
                     else:
                         uf.add(file)
 
-    def create_file_changes(self, branch, files, commit, git_commit, bulk, blames):
+    def create_file_changes(self, branch, files, commit, git_commit, bulk):
         for fn in files.keys():
             file = self.file_cache[self.get_file_key(fn, branch)]
             fc = self.create_file_change_object(commit, file, files[fn], git_commit)
             bulk.add(fc)
             if file.exists and file.is_code and fc.change_type in ['A', 'M'] or fc.change_type == '':
-                blame = self.create_file_blame_object(fn, commit, file)
-                if blame:
-                    blames.add(blame)
+                self.create_file_blame_object(fn, commit, file)
 
     def process_fileknowledge(self, branch: Branch):
         logger.info("FILE KNOWLEDGE PROCESSING")
@@ -271,7 +277,10 @@ class RepoAnalyzer(object):
                 author=blame.author
             ).order_by("date")
 
-            file_blames = FileBlame.objects.filter(author=blame.author, commit__in=commits)
+            file_blames = []
+            for c in commits:
+                if c.id in self.blame_loc:
+                    file_blames.append(self.blame_loc[c.id])
             fd = dict()
             for fb in file_blames:
                 if fb.file not in fd:
@@ -483,7 +492,8 @@ class RepoAnalyzer(object):
         for b in blames:
             if b[0].author.email == commit.author.email:
                 loc = loc + len(b[1])
-        return FileBlame(file=file, commit=commit, author=commit.author, loc=loc)
+
+        self.blame_loc[commit.id] = FileBlame(file, commit, loc)
 
     def __process_files_hotspot_weight(self, branch: Branch):
         max_file_changes = File.objects.filter(repository=self.repo, branch=branch) \

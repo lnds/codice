@@ -189,21 +189,6 @@ class FileChange(models.Model):
         return self.commit.branch
 
 
-class FileBlame(models.Model):
-    loc = models.IntegerField()
-    commit = models.ForeignKey(Commit, on_delete=models.CASCADE)
-    file = models.ForeignKey(File, on_delete=models.CASCADE)
-    author = models.ForeignKey(Developer, on_delete=models.CASCADE)
-
-    class Meta:
-        db_table = 'codice_fileblame'
-        unique_together = (('file', 'commit'),)
-        indexes = [
-            models.Index(fields=['author']),
-            models.Index(fields=['commit']),
-        ]
-
-
 class FileKnowledge(models.Model):
 
     class Meta:
