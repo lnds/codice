@@ -69,7 +69,6 @@
         </div>
         <div class="col-md-6">
             <div class="row">
-                {% big_text_box 'col-md-3' 'fa fa-edit' 'text-default' 'text-default' file.fileblame_set.count 'changes' %}
                 {% big_text_box 'col-md-3' 'fas fa-users' 'text-info' 'text-info' authors.count|intcomma 'committers' %}
                 {% big_text_box 'col-md-3' 'fas fa-copy' 'text-warning' 'text-warning' count_coupled_files 'coupled files' %}
                 {% big_text_box 'col-md-3' 'fas fa-clone' 'text-warning' 'text-warning' file.soc 'SOC' %}
