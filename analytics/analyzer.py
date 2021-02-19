@@ -257,20 +257,13 @@ class RepoAnalyzer(object):
         logger.info("END FILE OWNERS")
 
     def process_blames(self, branch: Branch):
-        with BulkCreateManager(Blame) as blames:
-            for author in self.developer_cache.values():
-                blames.add(Blame(author=author, repository=self.repo, branch=branch, loc=0))
-
-        blames = Blame.objects.filter(repository=self.repo, branch=branch)
         total_sum_loc = 0
         locs = defaultdict(int)
-        blames_id = dict()
-        for blame in blames:
-            blames_id[blame.author] = blame.id
+        for author in self.developer_cache.values():
             commits = Commit.objects.filter(
                 branch=branch,
                 repository=self.repo,
-                author=blame.author
+                author=author
             ).order_by("date")
 
             file_blames = []
@@ -287,20 +280,17 @@ class RepoAnalyzer(object):
                         fd[fb.file] = (fb.loc, fb.commit.date)
             sum_loc = sum([loc for (loc, d) in fd.values()])
             total_sum_loc += sum_loc
-            locs[blame.author] += sum_loc
+            locs[author] += sum_loc
 
         (total_insertions, total_deletions) = calc_total_ins_and_dels(self.repo, branch)
-        with BulkUpdateManager(Blame, ["loc", "impact", "log_impact", "ownership", "lines", "insertions", "deletions",
-                                       "add_self", "add_others", "del_self", "del_others", "net", "work_self",
-                                       "work_others", "raw_throughput", "raw_churn", "net_avg", "churn", "throughput",
-                                       "self_churn", "self_throughput", "commits", "changes"]) as bulk:
+        with BulkCreateManager(Blame) as bulk:
             for author in locs.keys():
                 commits = Commit.objects.filter(
                     branch=branch,
                     repository=self.repo,
                     author=author
                 ).order_by("date")
-                bulk.add(update_blame_object({"id": blames_id[author], "loc": float(locs[author])}, author, self.repo,
+                bulk.add(update_blame_object({ "loc": float(locs[author])}, author, self.repo,
                                              branch, commits, total_sum_loc, total_insertions, total_deletions,
                                              for_bulk=True))
 
@@ -486,7 +476,7 @@ class RepoAnalyzer(object):
     def create_file_blame_object(self, filename, commit: Commit, file: File):
         if not file.exists:
             return None
-        blames = self.git_repo.blame(commit.hexsha, filename)
+        blames = self.git_repo.blame(f"{commit.hexsha}^0", filename)
         if not blames:
             return None
         loc = 0
