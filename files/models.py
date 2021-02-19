@@ -30,9 +30,6 @@ class FilePath(models.Model):
     class Meta:
         db_table = 'codice_filepath'
         unique_together = (('path', 'repository', 'branch'),)
-        indexes = [
-            models.Index(fields=['parent', 'exists']),
-        ]
 
     def __str__(self):
         return "{}".format(self.path)
@@ -66,9 +63,6 @@ class File(models.Model):
     class Meta:
         db_table = 'codice_file'
 
-        indexes = [
-            models.Index(fields=['path', 'is_code']),
-        ]
         unique_together = (('filename', 'repository', 'branch'),)
 
     @cached_property

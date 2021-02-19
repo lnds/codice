@@ -94,9 +94,6 @@ class RepoAnalyzer(object):
 
         self.create_commits(branch)
         self.process_files_hotspot_weight(branch)
-        with BulkCreateManager(Blame) as blames:
-            for author in self.developer_cache.values():
-                blames.add(Blame(author=author, repository=self.repo, branch=branch, loc=0))
         self.process_fileknowledge(branch)
         self.process_blames(branch)
         return branch
@@ -106,37 +103,31 @@ class RepoAnalyzer(object):
 
         logger.info('BEGIN COMMIT HISTORY')
         commit_dict = {}
-        commit_files = {}
+        commit_stats = {}
         with BulkCreateManager(Commit, chunk_size=2500) as bulk:
             for git_commit in commit_history:
-                viable, files = self.is_git_commit_viable(git_commit)
+                viable, stats = self.is_git_commit_viable(git_commit)
                 if viable:
                     author_email = git_commit.author.email
                     author = self.get_or_create_author(author_email, git_commit.author.name)
-                    c = self.create_commit(git_commit, author, branch)
+                    c = self.create_commit(git_commit, stats, author, branch)
                     commit_dict[git_commit] = c
-                    commit_files[git_commit] = files
-
+                    commit_stats[git_commit] = stats
                     bulk.add(c)
         logger.info("END COMMIT HISTORY")
-        self.file_creation(commit_dict, commit_files, branch)
+        self.file_creation(commit_dict, commit_stats, branch)
 
-    def file_creation(self, commit_dict, commit_files, branch):
+    def file_creation(self, commit_dict, commit_stats, branch):
         logger.info("BEGIN FILE CREATION")
-        for git_commit in commit_dict.keys():
-            self.create_files(branch, commit_files[git_commit])
+        for (git_commit, commit) in commit_dict.items():
+            self.create_files(branch, commit_stats[git_commit])
+            self.create_file_changes(branch, commit_stats[git_commit], commit, git_commit)
         logger.info("END FILE CREATION")
 
-        logger.info("BEGIN FILE CHANGES CREATION")
-        with BulkCreateManager(FileChange, chunk_size=2500) as bulk:
-            for (git_commit, commit) in commit_dict.items():
-                self.create_file_changes(branch, commit_files[git_commit], commit, git_commit, bulk)
-        logger.info("END FILE CHANGES CREATION")
-
-    def create_files(self, branch, files):
+    def create_files(self, branch, stats):
         with BulkCreateManager(File, chunk_size=2500) as cf:
             with BulkUpdateManager(File, ['changes'], chunk_size=2500) as uf:
-                for fn in files.keys():
+                for fn in stats.files.keys():
                     file, created = self.create_file(fn, branch)
                     if file.exists and file.is_code:
                         file.changes += 1
@@ -145,14 +136,15 @@ class RepoAnalyzer(object):
                         else:
                             uf.add(file)
 
-    def create_file_changes(self, branch, files, commit, git_commit, bulk):
-        for fn in files.keys():
-            file = self.file_cache[self.get_file_key(fn, branch)]
-            if file.exists and file.is_code:
-                fc = self.create_file_change_object(commit, file, files[fn], git_commit)
-                bulk.add(fc)
-                if fc.change_type in ['A', 'M'] or fc.change_type == '':
-                    self.create_file_blame_object(fn, commit, file)
+    def create_file_changes(self, branch, stats, commit, git_commit):
+        with BulkCreateManager(FileChange, chunk_size=2500) as bulk:
+            for fn in stats.files.keys():
+                file = self.file_cache[self.get_file_key(fn, branch)]
+                if file.exists and file.is_code:
+                    fc = self.create_file_change_object(commit, file, stats.files[fn], git_commit)
+                    bulk.add(fc)
+                    if fc.change_type in ['A', 'M'] or fc.change_type == '':
+                        self.create_file_blame_object(fn, commit, file)
 
     def process_fileknowledge(self, branch: Branch):
         logger.info("FILE KNOWLEDGE PROCESSING")
@@ -265,6 +257,10 @@ class RepoAnalyzer(object):
         logger.info("END FILE OWNERS")
 
     def process_blames(self, branch: Branch):
+        with BulkCreateManager(Blame) as blames:
+            for author in self.developer_cache.values():
+                blames.add(Blame(author=author, repository=self.repo, branch=branch, loc=0))
+
         blames = Blame.objects.filter(repository=self.repo, branch=branch)
         total_sum_loc = 0
         locs = defaultdict(int)
@@ -318,16 +314,16 @@ class RepoAnalyzer(object):
         return self.developer_cache[cache_key]
 
     def is_git_commit_viable(self, git_commit):
-        files = git_commit.stats.files
-        filenames = [fn for fn in git_commit.stats.files.keys() if Path(self.base_path / Path(fn)).exists()]
-        return len(filenames) > 0, files
+        stats = git_commit.stats
+        filenames = [fn for fn in stats.files.keys() if Path(self.base_path / Path(fn)).exists()]
+        return len(filenames) > 0, stats
 
-    def create_commit(self, git_commit, author, branch):
+    def create_commit(self, git_commit, stats, author, branch):
         hexsha = git_commit.hexsha
         date = git_commit.authored_datetime
         msg = git_commit.message
         is_merge = len(git_commit.parents) > 1
-        stats = git_commit.stats.total
+        stats = stats.total
         ins = int(stats['insertions']) if not is_merge else 0
         dels = int(stats['deletions']) if not is_merge else 0
         lines = int(stats['lines']) if not is_merge else 0
