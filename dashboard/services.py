@@ -15,9 +15,12 @@ def calc_tech_debt_ratio(repo: Repository, branch: Branch):
     files = File.objects.filter(filechange__in=changes)\
         .aggregate(complexity=Sum('indent_complexity'), loc=Sum('code'), files=Count('id', distinct=True))
     hours = days * hours_per_day
-    development_cost = hours
-    remediation_cost = files['complexity'] / files['files'] if files['files'] > 0 else 0.0
-    cpl = hours/ files['loc']  if hours > 0.0 else 0.0
+    loc = files['loc']
+    cpl = hours/ loc  if hours > 0.0 else 0.0
+    development_cost = loc * cpl
+    factor = 1/files['files']
+    complexity = files['complexity']
+    remediation_cost = complexity * factor
     tech_debt_ratio = (remediation_cost / development_cost) * 100.0 if development_cost > 0.0 else 0.0
     print("hours={}, days={}, hours_per_day={}, development_cost={}, remediation_cost={}, cpl={}".format(hours, days, hours_per_day, development_cost, remediation_cost, cpl))
     return development_cost, remediation_cost, tech_debt_ratio, cpl
