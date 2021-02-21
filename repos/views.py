@@ -12,6 +12,7 @@ from django.views.generic import ListView, CreateView, DetailView, DeleteView
 from django.utils.translation import gettext as _
 
 from analytics.hotspots import count_hotspots
+from dashboard.services import calc_tech_debt_ratio
 from files.models import File, FileChange, FilePath, FileKnowledge
 from analytics.services import get_bus_factor_of, get_lang_participation_for_repo
 from repos.models import Repository, Branch
@@ -123,6 +124,11 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
         context['branch_id'] = self.branch.id if self.branch else 0
 
         context['hotspots_count'] = count_hotspots(self.repo, self.branch)
+        development_cost, remediation_cost, tech_debt_ratio, cpl = calc_tech_debt_ratio(self.repo, self.branch)
+        context['development_cost'] = development_cost
+        context['remediation_cost'] = remediation_cost
+        context['tech_debt_ratio'] = tech_debt_ratio
+
         return context
 
 

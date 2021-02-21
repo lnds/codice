@@ -51,7 +51,6 @@ class RepoAnalyzer(object):
         self.repo: Repository = repo
         self.owner: User = repo.owner
         self.filepath_cache = dict()
-        self.file_cache = dict()
         self.git_repo = GitRepository(self.repo.base_directory)
         self.base_path = Path(self.repo.base_directory)
         self.developer_cache = dict()
@@ -70,6 +69,7 @@ class RepoAnalyzer(object):
         self.repo.status = Repository.Status.ANALYZING
         self.repo.save()
         self.file_cache = dict()
+        self.developer_cache = dict()
         self.dict_change_status = dict()
         self.blame_loc = defaultdict(list)
         for branch in self.remote_branches_to_track:
@@ -92,9 +92,9 @@ class RepoAnalyzer(object):
 
         self.dict_change_status = dict()
 
-        self.create_commits(branch)
+        commits = self.create_commits(branch)
         self.process_files_hotspot_weight(branch)
-        self.process_fileknowledge(branch)
+        self.process_fileknowledge(branch, commits)
         self.process_blames(branch)
         return branch
 
@@ -116,6 +116,7 @@ class RepoAnalyzer(object):
                     bulk.add(c)
         logger.info("END COMMIT HISTORY")
         self.file_creation(commit_dict, commit_stats, branch)
+        return commit_dict.values()
 
     def file_creation(self, commit_dict, commit_stats, branch):
         logger.info("BEGIN FILE CREATION")
@@ -145,11 +146,11 @@ class RepoAnalyzer(object):
                     fc = self.create_file_change_object(commit, file, stats.files[fn], git_commit)
                     bulk.add(fc)
 
-    def process_fileknowledge(self, branch: Branch):
+    def process_fileknowledge(self, branch: Branch, commits):
         logger.info("FILE KNOWLEDGE PROCESSING")
 
-        index = list(File.objects.filter(repository=self.repo, branch=branch).values_list('id', flat=True))
-        authors_id = set(Commit.objects.order_by('author').values_list('author', flat=True).distinct())
+        index = [f.id for f in self.file_cache.values()]
+        authors_id = set([a.id for a in self.developer_cache.values()])
         df = pd.DataFrame(0, index=index, columns=authors_id)
 
         file_knowledge_dict = dict()
@@ -158,8 +159,7 @@ class RepoAnalyzer(object):
         file_owners = dict()
         with BulkUpdateManager(Commit, fields=['loc', 'add_others', 'add_self', 'del_others', 'del_self'],
                                chunk_size=1000) as bulk:
-            for c in Commit.objects.filter(branch=branch, repository=self.repo).select_related("author").order_by(
-                    "date"):
+            for c in commits:
                 if c.is_merge:
                     continue
                 author = c.author
@@ -169,67 +169,65 @@ class RepoAnalyzer(object):
                 del_self = 0
                 del_others = 0
 
-                with BulkCreateManager(FileKnowledge, chunk_size=1000) as bulk_fk:
-                    for fc in c.filechange_set.select_related("file"):
-                        if fc.change_type == 'D' or not fc.file.exists:
-                            continue
-                        sum_file_knowledge_dict[fc.file.id] += (fc.insertions + fc.deletions)
-                        k_index = (fc.file_id, author.id)
+                for fc in c.filechange_set.select_related("file"):
+                    if fc.change_type == 'D' or not fc.file.exists:
+                        continue
+                    sum_file_knowledge_dict[fc.file.id] += (fc.insertions + fc.deletions)
+                    k_index = (fc.file_id, author.id)
 
-                        if k_index in file_knowledge_dict:
-                            fk = file_knowledge_dict[k_index]
-                            fk.added += fc.insertions
-                            fk.deleted += fc.deletions
-                        else:
-                            fk = FileKnowledge(
-                                author=author,
-                                file=fc.file,
-                                added=fc.insertions,
-                                deleted=fc.deletions,
-                                knowledge=0
-                            )
-                            file_knowledge_dict[k_index] = fk
-                            bulk_fk.add(fk)
+                    if k_index in file_knowledge_dict:
+                        fk = file_knowledge_dict[k_index]
+                        fk.added += fc.insertions
+                        fk.deleted += fc.deletions
+                    else:
+                        fk = FileKnowledge(
+                            author=author,
+                            file=fc.file,
+                            added=fc.insertions,
+                            deleted=fc.deletions,
+                            knowledge=0
+                        )
+                        file_knowledge_dict[k_index] = fk
 
-                        if fc.file.id in file_owners:
-                            file_owner = file_owners[fc.file.id]
-                        else:
-                            file_owner = author.id
-                        if author.id == file_owner:
-                            add_self += fc.insertions
-                            del_self += fc.deletions
-                        else:
-                            add_others += fc.insertions
-                            del_others += fc.deletions
+                    if fc.file.id in file_owners:
+                        file_owner = file_owners[fc.file.id]
+                    else:
+                        file_owner = author.id
+                    if author.id == file_owner:
+                        add_self += fc.insertions
+                        del_self += fc.deletions
+                    else:
+                        add_others += fc.insertions
+                        del_others += fc.deletions
 
-                        if author.id == file_owner:
-                            add_self += fc.insertions
-                            del_self += fc.deletions
-                        else:
-                            add_others += fc.insertions
-                            del_others += fc.deletions
+                    if author.id == file_owner:
+                        add_self += fc.insertions
+                        del_self += fc.deletions
+                    else:
+                        add_others += fc.insertions
+                        del_others += fc.deletions
 
-                        val = df.at[fc.file.id, author.id]
-                        df.at[fc.file.id, author.id] = val + fc.insertions
+                    val = df.at[fc.file.id, author.id]
+                    df.at[fc.file.id, author.id] = val + fc.insertions
 
-                        deletions = fc.deletions
-                        r = df.loc[fc.file.id]
+                    deletions = fc.deletions
+                    r = df.loc[fc.file.id]
 
-                        while deletions > 0:
-                            imax = r.idxmax(axis=1)
-                            v = df.at[fc.file.id, imax]
-                            if v >= deletions:
-                                df.at[fc.file.id, imax] = v - deletions
-                                deletions = 0
-                            else:
-                                if v <= 0:
-                                    break
-                                deletions -= v
-                                df.at[fc.file.id, imax] = 0
-
+                    while deletions > 0:
                         imax = r.idxmax(axis=1)
-                        if df.at[fc.file.id, imax] > 0:
-                            file_owners[fc.file.id] = imax
+                        v = df.at[fc.file.id, imax]
+                        if v >= deletions:
+                            df.at[fc.file.id, imax] = v - deletions
+                            deletions = 0
+                        else:
+                            if v <= 0:
+                                break
+                            deletions -= v
+                            df.at[fc.file.id, imax] = 0
+
+                    imax = r.idxmax(axis=1)
+                    if df.at[fc.file.id, imax] > 0:
+                        file_owners[fc.file.id] = imax
 
                 c.loc = df[author.id].sum()
                 c.add_others = add_others
@@ -240,7 +238,7 @@ class RepoAnalyzer(object):
 
         logger.info("FILE KNOWLEDGE POST PROCESSING")
         # adjust knowledge factor
-        with BulkUpdateManager(FileKnowledge, ['knowledge']) as bulk:
+        with BulkCreateManager(FileKnowledge, chunk_size=2000) as bulk:
             for fk in file_knowledge_dict.values():
                 k_total = sum_file_knowledge_dict[fk.file_id]
                 fk.knowledge = min(1.0, (fk.added + fk.deleted) / k_total if k_total else 0.0)

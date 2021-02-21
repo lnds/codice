@@ -1,49 +1,66 @@
 {% load i18n %}
+{% load mathfilters %}
+{% load boxes %}
+{% load humanize %}
 <div class="row">
     <div class="col-xs-12 col-sm-10 col-md-8 col-lg-8">
         <div class="widget" style="height: 100%; max-height: 100%;">
-                <header>
-                    <h4>{% trans 'Hotspots map' %}</h4>
-                    <div class="widget-controls">
-                        <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
-                        <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
-                    </div>
-                </header>
-                <div class="body">
-                    <div id="hotspots-chart" ></div>
-                </div>
+            <header>
+                <h4>{% trans 'Hotspots map' %}
+                    <span class="pull-right ">
+                        <li class="fa fa-fire"></li>
+                        {% if file_count > 0 %}
+                            {% with hotspots_count|div:file_count|mul:100|floatformat:1 as p %}
+                                {{ p }}%
+                            {% endwith %}
+                        {% else %}
+                            0.0 %
+                        {% endif %}
+                        {% trans 'Red Hot Spots' %}
+                    </span>
+                </h4>
+            </header>
+            <div class="body">
+                <div id="hotspots-chart"></div>
+            </div>
         </div>
     </div>
     <div class="col-xs-12 col-sm-2 col-md-4 col-lg-4">
         <div id="treemaps">
             <div class="widget">
                 <header>
-                    <h4>{% trans 'Knowledge map' %}</h4>
-                    <div class="widget-controls">
-                        <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
-                        <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
-                    </div>
+                    <h4>{% trans 'Knowledge map' %}
+                        <span class="pull-right ">
+                            <i class="fa fa-bus "></i>
+                            {% trans 'bus factor:' %} {{ bus_factor|intcomma }}
+                        </span>
+
+                    </h4>
+
                 </header>
                 <div class="body">
-                        <div class="row">
-                            <div id="kmap"></div>
-                        </div>
+                    <div class="row">
+                        <div id="kmap"></div>
+                    </div>
                 </div>
             </div>
-             <div class="widget">
-                    <header>
-                        <h4>{% trans 'Code Size Map' %}</h4>
-                        <div class="widget-controls">
-                        <a data-widgster="expand" title="Expand" href="#"><i class="glyphicon glyphicon-chevron-up"></i></a>
-                        <a data-widgster="collapse" title="Collapse" href="#"><i class="glyphicon glyphicon-chevron-down"></i></a>
+            <div class="widget">
+                <header>
+                    <h4>
+                        {% trans 'Code Size Map' %}
+                        <span class="pull-right">
+                            <li class="fas fa-laptop-code "></li>
+                            {{ lang_count|intcomma }} {% trans 'languages' %}
+                        </span>
+
+                    </h4>
+                </header>
+                <div class="body">
+                    <div class="row">
+                        <div id="cmap"></div>
                     </div>
-                    </header>
-                    <div class="body">
-                        <div class="row">
-                            <div id="cmap"></div>
-                        </div>
-                    </div>
-             </div>
+                </div>
+            </div>
         </div>
 
     </div>

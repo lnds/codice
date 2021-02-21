@@ -39,23 +39,17 @@
                             <a href="{% url 'file-list-repo' repository.id %}?from=repos" >
                             {% big_text_box 'col-md-3' 'fa fa-files-o' 'big-text text-white' 'description' file_count|intcomma 'files'%}
                             </a>
-                            {% big_text_box 'col-md-3' 'fas fa-stream text-success' 'big-text text-success' 'description' commit_count|intcomma 'commits' %}
+                            {% big_text_box 'col-md-3' 'fas fa-stream text-success' 'text-success' 'description' commit_count|intcomma 'commits' %}
                             {% big_text_box 'col-md-3' 'fas fa-edit' 'big-text text-primary' 'description text-primary' file_changes_count|intcomma 'changes' %}
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="row">
                             {% big_text_box 'col-md-3' 'fa fa-code' 'big-text text-warning' 'description text-warning' loc|intcomma 'lines of code'%}
-                            {% big_text_box 'col-md-3' 'fas fa-laptop-code' 'big-text text-white' 'description' lang_count|intcomma 'languages'%}
-                            {% big_text_box 'col-md-3' 'fas fa-bus' 'big-text text-danger' 'description text-danger' bus_factor|intcomma 'bus factor' %}
+                            {% big_text_box 'col-md-3' 'fa fa-donate' 'big-text text-success' 'description text-success' development_cost|intcomma|floatformat:1 'development hours'%}
+                            {% big_text_box 'col-md-3' 'fa fa-wrench' 'big-text text-warning' 'description text-warning' remediation_cost|intcomma|floatformat:1 'remediation cost'%}
+                            {% big_text_box 'col-md-3' 'fa fa-file-code' 'big-text text-white' 'description text-white' tech_debt_ratio|floatformat:1|add:'%' 'tech debt ratio'%}
 
-                            {% if file_count > 0 %}
-                                {% with hotspots_count|div:file_count|mul:100|floatformat:1 as p %}
-                                {% big_text_box 'col-md-3' 'fa fa-fire' 'big-text text-danger' 'description text-danger' p|add:"%" 'Red Hot Spots' %}
-                                {% endwith %}
-                            {% else %}
-                                {% big_text_box 'col-md-3' 'fa fa-fire' 'big-text text-danger' 'description text-danger' "0.0 %" 'Red Hot Spots' %}
-                            {% endif %}
                         </div>
                     </div>
                 </div>
