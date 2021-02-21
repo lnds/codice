@@ -35,17 +35,17 @@ def clone_remote_repository(owner_id: int, repo_id: int):
         repo.status = Repository.Status.CLONED
         repo.save()
 
-        #process_repo_objects(repo)
+        process_repo_objects(repo)
 
         #when do you want to profile
-        with cProfile.Profile() as pr:
-           pr.runcall(process_repo_objects, repo)
-           s = io.StringIO()
-           sortby = SortKey.CUMULATIVE
-           ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-           ps.print_stats()
-           with open('codice.process_repo.stat.txt', 'w+') as f:
-               f.write(s.getvalue())
+        #with cProfile.Profile() as pr:
+        #   pr.runcall(process_repo_objects, repo)
+        #   s = io.StringIO()
+        #   sortby = SortKey.CUMULATIVE
+        #   ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        #   ps.print_stats()
+        #   with open('codice.process_repo.stat.txt', 'w+') as f:
+        #       f.write(s.getvalue())
 
         repo.status = Repository.Status.OK
         repo.save()

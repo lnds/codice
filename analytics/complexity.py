@@ -3,8 +3,6 @@ import re
 
 import numpy
 
-from tools.encoding import detect_encoding
-
 leading_tabs_expr =  re.compile(r'^(\t+)')
 leading_spaces_expr = re.compile(r'^( +)')
 empty_line_expr = re.compile(r'^\s*$')
@@ -34,9 +32,8 @@ def complexity_of(line):
     return n_log_tabs(line) + (n_log_spaces(line) / 4) # hardcoded indentation
 
 
-def calculate_complexity_in(source):
-    encoding = detect_encoding(source)
+def calculate_complexity_in(source, encoding):
     with open(source, "r", newline='', encoding=encoding, errors='ignore') as file:
         source = file.read()
         lines_complexity = [complexity_of(line) for line in source.split("\n")]
-        return numpy.mean(lines_complexity)
+        return numpy.mean(lines_complexity), len(lines_complexity)

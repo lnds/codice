@@ -391,10 +391,15 @@ class RepoAnalyzer(object):
                         analysis = SourceAnalysis.from_file(pkey, self.repo.name, encoding='utf-8',
                                                             fallback_encoding=encoding)
                         empty = analysis.state == SourceState.empty.name
-                        indent_complexity = calculate_complexity_in(pkey) if not empty and not binary else 0
+                        if not empty and not binary:
+                            ic, l = calculate_complexity_in(pkey, encoding)
+                            file.indent_complexity = ic
+                            file.lines = l
+                        else:
+                            file.indent_complexity = 0
+                            file.lines = 0
                         is_code = (not binary) and (not empty) and language_is_code(analysis.language)
-                        with open(path, "r", newline='', encoding=encoding, errors='ignore') as fd:
-                            lines = sum(1 for _ in fd) or 0
+
                         file.language = analysis.language
                         file.code = analysis.code
                         file.doc = analysis.documentation
@@ -402,8 +407,7 @@ class RepoAnalyzer(object):
                         file.empty = empty
                         file.strings = analysis.string
                         file.is_code = is_code
-                        file.indent_complexity = indent_complexity
-                        file.lines = lines
+
                 except Exception as e:
                     file = self.create_file_object(filename, branch, file_path, name, True)
                     logger.info('error on {}'.format(pkey))
