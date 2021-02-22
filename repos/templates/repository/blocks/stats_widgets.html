@@ -48,8 +48,15 @@
                             {% big_text_box 'col-md-3' 'fa fa-code' 'big-text text-warning' 'description text-warning' loc|intcomma 'lines of code'%}
                             {% big_text_box 'col-md-3' 'fa fa-donate' 'big-text text-success' 'description text-success' development_cost|floatformat:1 'development hours'%}
                             {% big_text_box 'col-md-3' 'fa fa-wrench' 'big-text text-warning' 'description text-warning' remediation_cost|floatformat:1 'remediation cost'%}
-                            {% big_text_box 'col-md-3' 'fa fa-file-code' 'big-text text-white' 'description text-white' tech_debt_ratio|floatformat:1|add:'%' 'tech debt ratio'%}
-
+                            {% if tech_debt_ratio > 25 %}
+                            {% big_text_box 'col-md-3' 'fa fa-percentage' 'big-text text-danger' 'description text-danger' tech_debt_ratio|floatformat:1|add:'%' 'tech debt ratio'%}
+                            {% elif tech_debt_ratio > 10 %}
+                            {% big_text_box 'col-md-3' 'fa fa-percentage' 'big-text text-warning' 'description text-warning' tech_debt_ratio|floatformat:1|add:'%' 'tech debt ratio'%}
+                            {% elif tech_debt_ratio > 5 %}
+                            {% big_text_box 'col-md-3' 'fa fa-percentage' 'big-text text-white' 'description text-white' tech_debt_ratio|floatformat:1|add:'%' 'tech debt ratio'%}
+                            {% else %}
+                            {% big_text_box 'col-md-3' 'fa fa-percentage' 'big-text text-success' 'description text-success' tech_debt_ratio|floatformat:1|add:'%' 'tech debt ratio'%}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
