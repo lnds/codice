@@ -1,4 +1,6 @@
-from django.db.models import Avg, Sum, Count, F, Max, Min
+from datetime import timedelta
+
+from django.db.models import Avg, Sum, Count, F, Max, Min, Value
 from django.db.models.functions import Trunc
 
 from codice import settings
@@ -10,16 +12,19 @@ def calc_tech_debt_ratio(repo: Repository, branch: Branch):
     commits = repo.commit_set.filter(branch=branch)
     changes = FileChange.objects.filter(commit__in=commits)
 
-    qh = changes.annotate(day=Trunc('date', 'day')).values('day').annotate(ma=Max('date'), mi=Min('date'), age=F('ma')-F('mi'))
-    qh = qh.aggregate(days=Count('day', distinct=True), hours=Avg('age'))
+    qh = commits.annotate(dev=F('author'), day=Trunc('date', 'day')).values('day', 'dev').annotate(ma=Max('date'), mi=Min('date'), age=F('ma')-F('mi')+Value(timedelta(hours=1)))
+    print(qh.query)
+    #qh = changes.annotate(day=Trunc('date', 'day')).values('day').annotate(ma=Max('date'), mi=Min('date'), age=F('ma')-F('mi'))
+    qh = qh.aggregate(days=Count('day', distinct=True), hours=Sum('age'))
     days = float(qh['days'] or 0.0) if qh else 0
     if 'hours' in  qh and qh['hours']:
-        hours_per_day = float(qh['hours'].seconds or 0.0) / 3600.0 if qh else 0
+        period = qh['hours']
+        hours = float(period.days * 24.0 + period.seconds/3600.0)
     else:
-        hours_per_day = 0
+        hours = 0
     fq = File.objects.filter(filechange__in=changes)\
         .aggregate(ic=Avg('indent_complexity'), cf=Avg('coupled_files'), loc=Sum('lines'), files=Count('id', distinct=True))
-    hours = days * hours_per_day
+    hours_per_day = hours / days  if days > 0 else 0
     loc = fq['loc'] or 0
     files = fq['files'] or 0
     cpl = hours / loc  if loc > 0 else 0.0
