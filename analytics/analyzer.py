@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+from filetype import filetype
 from pygount import SourceAnalysis
 from django.db.models import Max, F, Sum
 from django.utils.timezone import make_aware, is_aware
@@ -290,7 +291,14 @@ class RepoAnalyzer(object):
 
     def is_git_commit_viable(self, git_commit):
         stats = git_commit.stats
-        filenames = [fn for fn in stats.files.keys() if Path(self.base_path / Path(fn)).exists()]
+        filenames = []
+        keys = list(stats.files.keys())
+        for fn in keys:
+            filename = Path(self.base_path / Path(fn))
+            if filename.exists() and filetype.guess(str(filename)) is None:
+                filenames.append(fn)
+            else:
+                del stats.files[fn]
         ins = 0
         dels = 0
         for fn in filenames:
