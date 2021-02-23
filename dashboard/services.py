@@ -3,13 +3,14 @@ from datetime import timedelta
 from django.db.models import Avg, Sum, Count, F, Max, Min, Value
 from django.db.models.functions import Trunc
 
+from analytics.hotspots import get_hotspots
 from codice import settings
 from files.models import FileChange, File
 from repos.models import Repository, Branch
 
 
 # based on https://medium.com/the-andela-way/what-technical-debt-is-and-how-its-measured-ff41603005e3
-def calc_tech_debt_ratio(repo: Repository, branch: Branch, hot_spots: int):
+def calc_tech_debt_ratio(repo: Repository, branch: Branch):
     commits = repo.commit_set.filter(branch=branch)
     changes = FileChange.objects.filter(commit__in=commits)
 
@@ -31,16 +32,23 @@ def calc_tech_debt_ratio(repo: Repository, branch: Branch, hot_spots: int):
     cpl = hours / loc if loc > 0 else 0.0
     cpf = hours / files if files > 0 else 0.0
     development_cost = loc * cpl
-    k = settings.TECH_DEBT_FACTOR_ADJUST
-    factor = cpf * k
+
+    hot_spots = get_hotspots(repo, branch).aggregate(loc=Sum('lines'))
+    if 'loc' in hot_spots and hot_spots['loc']:
+        hot_spot_cost = hot_spots['loc'] * cpl
+    else:
+        hot_spot_cost = 0
+
     cf = fq['cf'] or 0
     ic = fq['ic'] or 0
     k_ic = cf / ic if ic > 0 else 0
-    complexity = ic * k_ic + cf
-    remediation_cost = complexity * factor + hot_spots * cpf
+    k = settings.TECH_DEBT_FACTOR_ADJUST
+    complexity = (ic * k_ic + cf) * k * cpf
+
+    remediation_cost = complexity + hot_spot_cost
     tech_debt_ratio = (remediation_cost / development_cost) * 100.0 if development_cost > 0.0 else 0.0
     print(
-        "hours={}, days={}, hours_per_day={}, development_cost={}, remediation_cost={}, cpl={}, files={}, complexity={}, loc={}, factor={}, cf = {}, ic = {}, k = {}".format(
-            hours, days, hours_per_day, development_cost, remediation_cost, cpl, files, complexity, loc, factor, cf,
+        "hours={}, days={}, hours_per_day={}, development_cost={}, remediation_cost={}, cpl={}, files={}, complexity={}, loc={}, cf = {}, ic = {}, k = {}".format(
+            hours, days, hours_per_day, development_cost, remediation_cost, cpl, files, complexity, loc,  cf,
             ic, k))
     return development_cost, remediation_cost, tech_debt_ratio, cpl
