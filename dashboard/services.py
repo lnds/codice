@@ -9,7 +9,7 @@ from repos.models import Repository, Branch
 
 
 # based on https://medium.com/the-andela-way/what-technical-debt-is-and-how-its-measured-ff41603005e3
-def calc_tech_debt_ratio(repo: Repository, branch: Branch):
+def calc_tech_debt_ratio(repo: Repository, branch: Branch, hot_spots: int):
     commits = repo.commit_set.filter(branch=branch)
     changes = FileChange.objects.filter(commit__in=commits)
 
@@ -36,11 +36,11 @@ def calc_tech_debt_ratio(repo: Repository, branch: Branch):
     cf = fq['cf'] or 0
     ic = fq['ic'] or 0
     k_ic = cf / ic if ic > 0 else 0
-    complexity = ic * k_ic + cf  # linear composition
-    remediation_cost = complexity * factor
+    complexity = ic * k_ic + cf
+    remediation_cost = complexity * factor + hot_spots * cpf
     tech_debt_ratio = (remediation_cost / development_cost) * 100.0 if development_cost > 0.0 else 0.0
     print(
-        "hours={}, days={}, hours_per_day={}, development_cost={}, remediation_cost={}, cpl={}, files={}, complexity={}, loc={}, factor={}, cf = {}, ic = {}".format(
+        "hours={}, days={}, hours_per_day={}, development_cost={}, remediation_cost={}, cpl={}, files={}, complexity={}, loc={}, factor={}, cf = {}, ic = {}, k = {}".format(
             hours, days, hours_per_day, development_cost, remediation_cost, cpl, files, complexity, loc, factor, cf,
-            ic))
+            ic, k))
     return development_cost, remediation_cost, tech_debt_ratio, cpl
