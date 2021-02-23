@@ -74,7 +74,6 @@ class CodiceSourceAnalysis(SourceAnalysis):
             group: str,
             encoding: str,
             fallback_encoding: str,
-            generated_regexes=pygount.common.regexes_from(DEFAULT_GENERATED_PATTERNS_TEXT),
     ) -> "CodiceSourceAnalysis":
         """
         BEWARE
@@ -104,16 +103,6 @@ class CodiceSourceAnalysis(SourceAnalysis):
                 assert lexer is not None
         lc = 0
         ln = 0
-        if (result is None) and (len(generated_regexes) != 0):
-            lines_1, lines_2 = itertools.tee(pygount.common.lines(source_code))
-            lines_complexity = [complexity_of(line) for line in lines_1]
-            lc, ln = numpy.mean(lines_complexity), len(lines_complexity)
-            number_line_and_regex = matching_number_line_and_regex(lines_2, generated_regexes)
-            if number_line_and_regex is not None:
-                number, _, regex = number_line_and_regex
-                message = "line {0} matches {1}".format(number, regex)
-                _log.info("%s: is generated code because %s", source_path, message)
-                result = CodiceSourceAnalysis.from_state(source_path, group, SourceState.generated, message)
         if result is None:
             assert lexer is not None
             assert source_code is not None

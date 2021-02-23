@@ -9,7 +9,7 @@ from repos.models import Repository, Branch
 
 
 # based on https://medium.com/the-andela-way/what-technical-debt-is-and-how-its-measured-ff41603005e3
-def calc_tech_debt_ratio(repo: Repository, branch: Branch):
+def calc_tech_debt_ratio(repo: Repository, branch: Branch, hot_spots: int):
     commits = repo.commit_set.filter(branch=branch)
     changes = FileChange.objects.filter(commit__in=commits)
 
@@ -31,7 +31,7 @@ def calc_tech_debt_ratio(repo: Repository, branch: Branch):
     cpl = hours / loc if loc > 0 else 0.0
     cpf = hours / files if files > 0 else 0.0
     development_cost = loc * cpl
-    k = settings.TECH_DEBT_FACTOR_ADJUST
+    k = hot_spots / files if files > 0 else 0
     factor = cpf * k
     cf = fq['cf'] or 0
     ic = fq['ic'] or 0

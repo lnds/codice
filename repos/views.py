@@ -123,8 +123,9 @@ class RepositoryDetail(RepositoryMixin, CanSeeRepoMixin, DetailView):
 
         context['branch_id'] = self.branch.id if self.branch else 0
 
-        context['hotspots_count'] = count_hotspots(self.repo, self.branch)
-        development_cost, remediation_cost, tech_debt_ratio, cpl = calc_tech_debt_ratio(self.repo, self.branch)
+        hot_spots = count_hotspots(self.repo, self.branch)
+        context['hotspots_count'] = hot_spots
+        development_cost, remediation_cost, tech_debt_ratio, cpl = calc_tech_debt_ratio(self.repo, self.branch, hot_spots)
         context['development_cost'] = development_cost
         context['remediation_cost'] = remediation_cost
         context['tech_debt_ratio'] = tech_debt_ratio
