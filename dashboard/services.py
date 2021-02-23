@@ -7,7 +7,7 @@ from analytics.hotspots import get_hotspots
 from codice import settings
 from files.models import FileChange, File
 from repos.models import Repository, Branch
-
+import math
 
 # based on https://medium.com/the-andela-way/what-technical-debt-is-and-how-its-measured-ff41603005e3
 def calc_tech_debt_ratio(repo: Repository, branch: Branch):
@@ -41,14 +41,23 @@ def calc_tech_debt_ratio(repo: Repository, branch: Branch):
 
     cf = fq['cf'] or 0
     ic = fq['ic'] or 0
-    k_ic = cf / ic if ic > 0 else 0
+
+    k1 = math.log10(cf) if cf > 0 else 1
+    k2 = math.log10(ic) if ic > 0 else 1
+    if k1 > k2:
+        k_ic = math.pow(10.0, k1 - k2)
+    else:
+        k_ic = math.pow(10.0, k2 - k1)
+    k_ic = k1 / k2 if k2 > 0 else (k2 / k1 if k1 > 0 else 1) 
+    print("cf = {} k1 = {}  ic = {} k2 = {}, k_ic = {}".format(cf, k1, ic, k2, k_ic))
+
     k = settings.TECH_DEBT_FACTOR_ADJUST
     complexity = (ic * k_ic + cf) * k * cpf
 
     remediation_cost = complexity + hot_spot_cost
     tech_debt_ratio = (remediation_cost / development_cost) * 100.0 if development_cost > 0.0 else 0.0
     print(
-        "hours={}, days={}, hours_per_day={}, development_cost={}, remediation_cost={}, cpl={}, files={}, complexity={}, loc={}, cf = {}, ic = {}, k = {}".format(
+        "hours={}, days={}, hours_per_day={}, development_cost={}, remediation_cost={}, cpl={}, files={}, complexity={}, loc={}, cf = {}, ic = {}, k = {}, hot_spot_cost = {}".format(
             hours, days, hours_per_day, development_cost, remediation_cost, cpl, files, complexity, loc,  cf,
-            ic, k))
+            ic, k, hot_spot_cost))
     return development_cost, remediation_cost, tech_debt_ratio, cpl
