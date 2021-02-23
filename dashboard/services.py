@@ -31,7 +31,7 @@ def calc_tech_debt_ratio(repo: Repository, branch: Branch, hot_spots: int):
     cpl = hours / loc if loc > 0 else 0.0
     cpf = hours / files if files > 0 else 0.0
     development_cost = loc * cpl
-    k = settings.TECH_DEBT_FACTOR_ADJUST
+    k = hot_spots / files if files > 0 else 0
     factor = cpf * k
     cf = fq['cf'] or 0
     ic = fq['ic'] or 0
