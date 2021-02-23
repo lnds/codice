@@ -5,8 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 from filetype import filetype
-from pygount import SourceAnalysis
-from django.db.models import Max, F, Sum
+from django.db.models import Max, F
 from django.utils.timezone import make_aware, is_aware
 from pygount.analysis import SourceState, is_binary_file
 
@@ -17,7 +16,7 @@ from commits.models import Commit
 from developers.models import Developer, Blame
 from files.models import File, FilePath, FileChange, FileKnowledge
 from git_interface.gitobjects import GitRepository
-from analytics.complexity import calculate_complexity_in
+from analytics.complexity import source_analysis
 from repos.models import Repository, Branch
 import logging
 
@@ -95,7 +94,7 @@ class RepoAnalyzer(object):
 
         commits = self.create_commits(branch)
         self.process_files_hotspot_weight(branch)
-        self.process_fileknowledge(branch, commits)
+        self.process_fileknowledge(commits)
         self.process_blames(branch)
         return branch
 
@@ -122,11 +121,11 @@ class RepoAnalyzer(object):
     def file_creation(self, commit_dict, commit_stats, branch):
         logger.info("BEGIN FILE CREATION")
         for (git_commit, commit) in commit_dict.items():
-            self.create_files(branch, commit_stats[git_commit], commit)
+            self.create_files(branch, commit_stats[git_commit])
             self.create_file_changes(branch, commit_stats[git_commit], commit, git_commit)
         logger.info("END FILE CREATION")
 
-    def create_files(self, branch, stats, commit: Commit):
+    def create_files(self, branch, stats):
         with BulkCreateManager(File, chunk_size=2500) as cf:
             with BulkUpdateManager(File, ['changes'], chunk_size=2500) as uf:
                 for fn in stats.files.keys():
@@ -147,7 +146,7 @@ class RepoAnalyzer(object):
                     fc = self.create_file_change_object(commit, file, stats.files[fn], git_commit)
                     bulk.add(fc)
 
-    def process_fileknowledge(self, branch: Branch, commits):
+    def process_fileknowledge(self, commits):
         logger.info("FILE KNOWLEDGE PROCESSING")
 
         index = [f.id for f in self.file_cache.values()]
@@ -396,18 +395,11 @@ class RepoAnalyzer(object):
                         exists=True,
                     )
                     if not binary:
-                        analysis = SourceAnalysis.from_file(pkey, self.repo.name, encoding='utf-8',
-                                                            fallback_encoding=encoding)
+                        analysis = source_analysis(pkey, self.repo.name, encoding)
                         empty = analysis.state == SourceState.empty.name
-                        if not empty and not binary:
-                            ic, l = calculate_complexity_in(pkey, encoding)
-                            file.indent_complexity = ic
-                            file.lines = l
-                        else:
-                            file.indent_complexity = 0
-                            file.lines = 0
-                        is_code = (not binary) and (not empty) and language_is_code(analysis.language)
-
+                        file.indent_complexity = analysis.lc
+                        file.lines = analysis.lines
+                        is_code = (not empty) and language_is_code(analysis.language)
                         file.language = analysis.language
                         file.code = analysis.code
                         file.doc = analysis.documentation

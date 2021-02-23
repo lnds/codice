@@ -214,4 +214,4 @@ AUTH_USER_MODEL = 'authentication.User'
 
 CODICE_HOT_SPOTS_THRESHOLD = 30
 CODICE_VERSION = "0.1.0"
-TECH_DEBT_FACTOR_ADJUST = 0.1 # see dashboard services
+TECH_DEBT_FACTOR_ADJUST = 0.05 # see dashboard services

@@ -1,16 +1,24 @@
 # based on https://github.com/adamtornhill/maat-scripts/blob/master/miner/complexity_calculations.py
+import itertools
+import os
 import re
+from typing import Optional
 
 import numpy
+import pygount
+from pygount import SourceAnalysis, SourceState
+from pygount.analysis import has_lexer, guess_lexer, matching_number_line_and_regex, _log, _line_parts, \
+    DEFAULT_GENERATED_PATTERNS_TEXT, DuplicatePool
 
 leading_tabs_expr =  re.compile(r'^(\t+)')
 leading_spaces_expr = re.compile(r'^( +)')
 empty_line_expr = re.compile(r'^\s*$')
+tab_pattern = re.compile(r'\t+')
+space_pattern = re.compile(r' +')
 
 
 def n_log_tabs(line):
-    pattern = re.compile(r' +')
-    wo_spaces = re.sub(pattern, '', line)
+    wo_spaces = re.sub(space_pattern, '', line)
     m = leading_tabs_expr.search(wo_spaces)
     if m:
         tabs = m.group()
@@ -19,8 +27,7 @@ def n_log_tabs(line):
 
 
 def n_log_spaces(line):
-    pattern = re.compile(r'\t+')
-    wo_tabs = re.sub(pattern, '', line)
+    wo_tabs = re.sub(tab_pattern, '', line)
     m = leading_spaces_expr.search(wo_tabs)
     if m:
         spaces = m.group()
@@ -32,8 +39,140 @@ def complexity_of(line):
     return n_log_tabs(line) + (n_log_spaces(line) / 4) # hardcoded indentation
 
 
-def calculate_complexity_in(source, encoding):
-    with open(source, "r", newline='', encoding=encoding, errors='ignore') as file:
-        source = file.read()
-        lines_complexity = [complexity_of(line) for line in source.split("\n")]
-        return numpy.mean(lines_complexity), len(lines_complexity)
+class CodiceSourceAnalysis(SourceAnalysis):
+    def __init__(
+        self,
+        path: str,
+        language: str,
+        group: str,
+        code: int,
+        documentation: int,
+        empty: int,
+        string: int,
+        state: SourceState,
+        state_info: Optional[str] = None,
+        lc: int = 0,
+        lines: int = 0,
+    ):
+        super().__init__(path, language, group, code, documentation, empty, string, state, state_info)
+        self.lc = lc
+        self.lines = lines
+        SourceAnalysis._check_state_info(state, state_info)
+        self._path = path
+        self._language = language
+        self._group = group
+        self._code = code
+        self._documentation = documentation
+        self._empty = empty
+        self._string = string
+        self._state = state
+        self._state_info = state_info
+
+    @staticmethod
+    def codice_from_file(
+            source_path: str,
+            group: str,
+            encoding: str,
+            fallback_encoding: str,
+            generated_regexes=pygount.common.regexes_from(DEFAULT_GENERATED_PATTERNS_TEXT),
+    ) -> "CodiceSourceAnalysis":
+        """
+        BEWARE
+        specialized version assumes source_path is not binary
+        """
+        assert encoding is not None
+        assert generated_regexes is not None
+
+        result = None
+        lexer = None
+        source_code = None
+        source_size = os.path.getsize(source_path)
+        if source_size == 0:
+            result = CodiceSourceAnalysis.from_state(source_path, group, SourceState.empty)
+        elif not has_lexer(source_path):
+            result = CodiceSourceAnalysis.from_state(source_path, group, SourceState.unknown)
+
+        if result is None:
+            try:
+                with open(source_path, "r", encoding=encoding) as source_file:
+                    source_code = source_file.read()
+            except (LookupError, OSError, UnicodeError) as error:
+                _log.warning("cannot read %s using encoding %s: %s", source_path, encoding, error)
+                result = SourceAnalysis.from_state(source_path, group, SourceState.error, error)
+            if result is None:
+                lexer = guess_lexer(source_path, source_code)
+                assert lexer is not None
+        lc = 0
+        ln = 0
+        if (result is None) and (len(generated_regexes) != 0):
+            lines_1, lines_2 = itertools.tee(pygount.common.lines(source_code))
+            lines_complexity = [complexity_of(line) for line in lines_1]
+            lc, ln = numpy.mean(lines_complexity), len(lines_complexity)
+            number_line_and_regex = matching_number_line_and_regex(lines_2, generated_regexes)
+            if number_line_and_regex is not None:
+                number, _, regex = number_line_and_regex
+                message = "line {0} matches {1}".format(number, regex)
+                _log.info("%s: is generated code because %s", source_path, message)
+                result = SourceAnalysis.from_state(source_path, group, SourceState.generated, message)
+        if result is None:
+            assert lexer is not None
+            assert source_code is not None
+            language = lexer.name
+            if ("xml" in language.lower()) or (language == "Genshi"):
+                dialect = pygount.xmldialect.xml_dialect(source_path, source_code)
+                if dialect is not None:
+                    language = dialect
+            mark_to_count_map = {"c": 0, "d": 0, "e": 0, "s": 0}
+            for line_parts in _line_parts(lexer, source_code):
+                mark_to_increment = "e"
+                for mark_to_check in ("d", "s", "c"):
+                    if mark_to_check in line_parts:
+                        mark_to_increment = mark_to_check
+                mark_to_count_map[mark_to_increment] += 1
+            result = CodiceSourceAnalysis(
+                path=source_path,
+                language=language,
+                group=group,
+                code=mark_to_count_map["c"],
+                documentation=mark_to_count_map["d"],
+                empty=mark_to_count_map["e"],
+                string=mark_to_count_map["s"],
+                state=SourceState.analyzed,
+                state_info=None,
+                lc=lc,
+                lines=ln
+            )
+
+        assert result is not None
+        return result
+
+    @staticmethod
+    def from_state(
+            source_path: str, group: str, state: SourceState, state_info: Optional[str] = None
+    ) -> "CodiceSourceAnalysis":
+        """
+        Factory method to create a :py:class:`SourceAnalysis` with all counts
+        set to 0 and everything else according to the specified parameters.
+        """
+        assert source_path is not None
+        assert group is not None
+        assert state != SourceState.analyzed, "use from() for analyzable sources"
+        SourceAnalysis._check_state_info(state, state_info)
+        return CodiceSourceAnalysis(
+            path=source_path,
+            language="__{0}__".format(state.name),
+            group=group,
+            code=0,
+            documentation=0,
+            empty=0,
+            string=0,
+            state=state,
+            state_info=state_info,
+        )
+
+
+def source_analysis(source, group, encoding):
+    analysis = CodiceSourceAnalysis.codice_from_file(source, group, encoding='utf-8', fallback_encoding=encoding)
+    return analysis
+
+
