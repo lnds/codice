@@ -11,7 +11,7 @@ from django.http import HttpResponse
 from django.views.generic import ListView, CreateView, DetailView, DeleteView
 from django.utils.translation import gettext as _
 
-from analytics.hotspots import count_hotspots
+from analytics.hotspots import count_hotspots, hotspot_time_limit
 from dashboard.services import calc_tech_debt_ratio
 from files.models import File, FileChange, FilePath, FileKnowledge
 from analytics.services import get_bus_factor_of, get_lang_participation_for_repo
@@ -151,7 +151,7 @@ def calc_hotspots_tree(repo, branch):
     def get_children(path):
         children = FilePath.objects.filter(parent=path, exists=True)
         result = [i for i in [get_children(child) for child in children] if i]
-        files = File.objects.filter(path=path, is_code=True)
+        files = File.objects.filter(path=path, is_code=True, last_update__gt=hotspot_time_limit)
         for f in files:
             result.append({'size': f.code, 'name': f.name, 'weight': f.get_hotspot_weight(max_file_changes), 'i': f.id,
                            'changes': f.get_changes, 'children': []})

@@ -80,7 +80,6 @@ class CodiceSourceAnalysis(SourceAnalysis):
         specialized version assumes source_path is not binary
         """
         assert encoding is not None
-        assert generated_regexes is not None
 
         result = None
         lexer = None
@@ -103,6 +102,11 @@ class CodiceSourceAnalysis(SourceAnalysis):
                 assert lexer is not None
         lc = 0
         ln = 0
+        if result is None:
+            lines_1, lines_2 = itertools.tee(pygount.common.lines(source_code))
+            lines_complexity = [complexity_of(line) for line in lines_1]
+            lc, ln = numpy.mean(lines_complexity), len(lines_complexity)
+
         if result is None:
             assert lexer is not None
             assert source_code is not None
