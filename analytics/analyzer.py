@@ -121,11 +121,11 @@ class RepoAnalyzer(object):
     def file_creation(self, commit_dict, commit_stats, branch):
         logger.info("BEGIN FILE CREATION")
         for (git_commit, commit) in commit_dict.items():
-            self.create_files(branch, commit_stats[git_commit])
+            self.create_files(branch, commit_stats[git_commit], commit)
             self.create_file_changes(branch, commit_stats[git_commit], commit, git_commit)
         logger.info("END FILE CREATION")
 
-    def create_files(self, branch, stats):
+    def create_files(self, branch, stats, commit: Commit):
         with BulkCreateManager(File, chunk_size=2500) as cf:
             with BulkUpdateManager(File, ['changes'], chunk_size=2500) as uf:
                 for fn in stats.files.keys():
@@ -133,8 +133,13 @@ class RepoAnalyzer(object):
                     if file.exists and file.is_code:
                         file.changes += 1
                         if created:
+                            file.created = commit.date
+                            file.last_update = commit.date
                             cf.add(file)
                         else:
+                            if commit.date > file.last_update:
+                                file.last_update = commit.date
+                            file.c = commit.date
                             uf.add(file)
 
     def create_file_changes(self, branch, stats, commit, git_commit):

@@ -53,6 +53,8 @@ class File(models.Model):
     soc = models.IntegerField(default=0)
     changes = models.IntegerField(default=0)
     hotspot_weight = models.FloatField(default=0.0)
+    created = models.DateTimeField(auto_created=True)
+    last_update = models.DateTimeField(auto_created=True)
 
     path = models.ForeignKey(FilePath, on_delete=models.CASCADE)
     repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
