@@ -98,7 +98,7 @@ class CodiceSourceAnalysis(SourceAnalysis):
                     source_code = source_file.read()
             except (LookupError, OSError, UnicodeError) as error:
                 _log.warning("cannot read %s using encoding %s: %s", source_path, encoding, error)
-                result = SourceAnalysis.from_state(source_path, group, SourceState.error, error)
+                result = CodiceSourceAnalysis.from_state(source_path, group, SourceState.error, error)
             if result is None:
                 lexer = guess_lexer(source_path, source_code)
                 assert lexer is not None
@@ -113,7 +113,7 @@ class CodiceSourceAnalysis(SourceAnalysis):
                 number, _, regex = number_line_and_regex
                 message = "line {0} matches {1}".format(number, regex)
                 _log.info("%s: is generated code because %s", source_path, message)
-                result = SourceAnalysis.from_state(source_path, group, SourceState.generated, message)
+                result = CodiceSourceAnalysis.from_state(source_path, group, SourceState.generated, message)
         if result is None:
             assert lexer is not None
             assert source_code is not None
@@ -150,10 +150,6 @@ class CodiceSourceAnalysis(SourceAnalysis):
     def from_state(
             source_path: str, group: str, state: SourceState, state_info: Optional[str] = None
     ) -> "CodiceSourceAnalysis":
-        """
-        Factory method to create a :py:class:`SourceAnalysis` with all counts
-        set to 0 and everything else according to the specified parameters.
-        """
         assert source_path is not None
         assert group is not None
         assert state != SourceState.analyzed, "use from() for analyzable sources"
