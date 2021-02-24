@@ -33,11 +33,8 @@ def calc_tech_debt_ratio(repo: Repository, branch: Branch):
     cpf = hours / files if files > 0 else 0.0
     development_cost = loc * cpl
 
-    hot_spots = get_hotspots(repo, branch).aggregate(loc=Sum('lines'))
-    if 'loc' in hot_spots and hot_spots['loc']:
-        hot_spot_cost = hot_spots['loc'] * cpl
-    else:
-        hot_spot_cost = 0
+    hot_spots = get_hotspots(repo, branch).count()
+    hot_spot_cost = cpf * hot_spots
 
     cf = fq['cf'] or 0
     ic = fq['ic'] or 0
@@ -48,16 +45,14 @@ def calc_tech_debt_ratio(repo: Repository, branch: Branch):
         k_ic = math.pow(10.0, k1 - k2)
     else:
         k_ic = math.pow(10.0, k2 - k1)
-    k_ic = k1 / k2 if k2 > 0 else (k2 / k1 if k1 > 0 else 1) 
-    print("cf = {} k1 = {}  ic = {} k2 = {}, k_ic = {}".format(cf, k1, ic, k2, k_ic))
 
     k = settings.TECH_DEBT_FACTOR_ADJUST
-    complexity = (ic * k_ic + cf) * k * cpf
+    complexity_cost = (ic * k_ic + cf)  * cpf
 
-    remediation_cost = complexity + hot_spot_cost
+    remediation_cost = (complexity_cost + hot_spot_cost) * k
     tech_debt_ratio = (remediation_cost / development_cost) * 100.0 if development_cost > 0.0 else 0.0
     print(
         "hours={}, days={}, hours_per_day={}, development_cost={}, remediation_cost={}, cpl={}, files={}, complexity={}, loc={}, cf = {}, ic = {}, k = {}, hot_spot_cost = {}".format(
-            hours, days, hours_per_day, development_cost, remediation_cost, cpl, files, complexity, loc,  cf,
+            hours, days, hours_per_day, development_cost, remediation_cost, cpl, files, complexity_cost, loc,  cf,
             ic, k, hot_spot_cost))
     return development_cost, remediation_cost, tech_debt_ratio, cpl
