@@ -1,0 +1,228 @@
+[2021-03-12 02:37:13,473: INFO/MainProcess] Connected to amqp://guest:**@127.0.0.1:5672//
+[2021-03-12 02:37:13,485: INFO/MainProcess] mingle: searching for neighbors
+[2021-03-12 02:37:13,490: WARNING/MainProcess] consumer: Connection to broker lost. Trying to re-establish the connection...
+Traceback (most recent call last):
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 318, in start
+    blueprint.start(self)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/bootsteps.py", line 119, in start
+    step.start(parent)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 40, in start
+    self.sync(c)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 44, in sync
+    replies = self.send_hello(c)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 57, in send_hello
+    replies = inspect.hello(c.hostname, our_revoked._data) or {}
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 156, in hello
+    return self._request('hello', from_node=from_node, revoked=revoked)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 98, in _request
+    return self._prepare(self.app.control.broadcast(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 478, in broadcast
+    return self.mailbox(conn)._broadcast(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/pidbox.py", line 340, in _broadcast
+    self._publish(command, arguments, destination=destination,
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/pidbox.py", line 302, in _publish
+    maybe_declare(self.reply_queue(channel))
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/common.py", line 121, in maybe_declare
+    return _maybe_declare(entity, channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/common.py", line 161, in _maybe_declare
+    entity.declare(channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 611, in declare
+    self._create_queue(nowait=nowait, channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 620, in _create_queue
+    self.queue_declare(nowait=nowait, passive=False, channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 648, in queue_declare
+    ret = channel.queue_declare(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/channel.py", line 1148, in queue_declare
+    return queue_declare_ok_t(*self.wait(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/abstract_channel.py", line 88, in wait
+    self.connection.drain_events(timeout=timeout)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 508, in drain_events
+    while not self.blocking_read(timeout):
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 514, in blocking_read
+    return self.on_inbound_frame(frame)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/method_framing.py", line 55, in on_frame
+    callback(channel, method_sig, buf, None)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 520, in on_inbound_method
+    return self.channels[channel_id].dispatch_method(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/abstract_channel.py", line 145, in dispatch_method
+    listener(*args)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 650, in _on_close
+    raise error_for_code(reply_code, reply_text,
+amqp.exceptions.InternalError: (0, 0): (541) INTERNAL_ERROR
+[2021-03-12 02:37:14,099: INFO/MainProcess] Connected to amqp://guest:**@127.0.0.1:5672//
+[2021-03-12 02:37:14,109: INFO/MainProcess] mingle: searching for neighbors
+[2021-03-12 02:40:14,371: WARNING/MainProcess] consumer: Connection to broker lost. Trying to re-establish the connection...
+Traceback (most recent call last):
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 318, in start
+    blueprint.start(self)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/bootsteps.py", line 119, in start
+    step.start(parent)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 40, in start
+    self.sync(c)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 44, in sync
+    replies = self.send_hello(c)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 57, in send_hello
+    replies = inspect.hello(c.hostname, our_revoked._data) or {}
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 156, in hello
+    return self._request('hello', from_node=from_node, revoked=revoked)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 98, in _request
+    return self._prepare(self.app.control.broadcast(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 478, in broadcast
+    return self.mailbox(conn)._broadcast(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/pidbox.py", line 340, in _broadcast
+    self._publish(command, arguments, destination=destination,
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/pidbox.py", line 302, in _publish
+    maybe_declare(self.reply_queue(channel))
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/common.py", line 121, in maybe_declare
+    return _maybe_declare(entity, channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/common.py", line 161, in _maybe_declare
+    entity.declare(channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 611, in declare
+    self._create_queue(nowait=nowait, channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 620, in _create_queue
+    self.queue_declare(nowait=nowait, passive=False, channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 648, in queue_declare
+    ret = channel.queue_declare(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/channel.py", line 1148, in queue_declare
+    return queue_declare_ok_t(*self.wait(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/abstract_channel.py", line 88, in wait
+    self.connection.drain_events(timeout=timeout)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 508, in drain_events
+    while not self.blocking_read(timeout):
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 513, in blocking_read
+    frame = self.transport.read_frame()
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/transport.py", line 253, in read_frame
+    frame_header = read(7, True)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/transport.py", line 459, in _read
+    s = recv(n - len(rbuf))
+ConnectionResetError: [Errno 54] Connection reset by peer
+[2021-03-12 02:40:14,386: INFO/MainProcess] Connected to amqp://guest:**@127.0.0.1:5672//
+[2021-03-12 02:40:14,412: INFO/MainProcess] mingle: searching for neighbors
+[2021-03-12 02:43:46,838: INFO/MainProcess] Connected to amqp://guest:**@127.0.0.1:5672//
+[2021-03-12 02:43:46,852: INFO/MainProcess] mingle: searching for neighbors
+[2021-03-12 02:43:46,857: WARNING/MainProcess] consumer: Connection to broker lost. Trying to re-establish the connection...
+Traceback (most recent call last):
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 318, in start
+    blueprint.start(self)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/bootsteps.py", line 119, in start
+    step.start(parent)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 40, in start
+    self.sync(c)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 44, in sync
+    replies = self.send_hello(c)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 57, in send_hello
+    replies = inspect.hello(c.hostname, our_revoked._data) or {}
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 156, in hello
+    return self._request('hello', from_node=from_node, revoked=revoked)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 98, in _request
+    return self._prepare(self.app.control.broadcast(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 478, in broadcast
+    return self.mailbox(conn)._broadcast(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/pidbox.py", line 340, in _broadcast
+    self._publish(command, arguments, destination=destination,
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/pidbox.py", line 302, in _publish
+    maybe_declare(self.reply_queue(channel))
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/common.py", line 121, in maybe_declare
+    return _maybe_declare(entity, channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/common.py", line 161, in _maybe_declare
+    entity.declare(channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 611, in declare
+    self._create_queue(nowait=nowait, channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 620, in _create_queue
+    self.queue_declare(nowait=nowait, passive=False, channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 648, in queue_declare
+    ret = channel.queue_declare(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/channel.py", line 1148, in queue_declare
+    return queue_declare_ok_t(*self.wait(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/abstract_channel.py", line 88, in wait
+    self.connection.drain_events(timeout=timeout)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 508, in drain_events
+    while not self.blocking_read(timeout):
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 514, in blocking_read
+    return self.on_inbound_frame(frame)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/method_framing.py", line 55, in on_frame
+    callback(channel, method_sig, buf, None)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 520, in on_inbound_method
+    return self.channels[channel_id].dispatch_method(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/abstract_channel.py", line 145, in dispatch_method
+    listener(*args)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 650, in _on_close
+    raise error_for_code(reply_code, reply_text,
+amqp.exceptions.InternalError: (0, 0): (541) INTERNAL_ERROR
+[2021-03-12 02:43:47,455: INFO/MainProcess] Connected to amqp://guest:**@127.0.0.1:5672//
+[2021-03-12 02:43:47,468: INFO/MainProcess] mingle: searching for neighbors
+[2021-03-12 02:46:09,564: CRITICAL/MainProcess] Unrecoverable error: NotFound(404, "NOT_FOUND - failed to perform operation on queue 'dd901b2e-ff3d-3423-a99e-44df27484dd5.reply.celery.pidbox' in vhost '/' due to timeout", (50, 10), 'Queue.declare')
+Traceback (most recent call last):
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/worker.py", line 208, in start
+    self.blueprint.start(self)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/bootsteps.py", line 119, in start
+    step.start(parent)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/bootsteps.py", line 369, in start
+    return self.obj.start()
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 318, in start
+    blueprint.start(self)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/bootsteps.py", line 119, in start
+    step.start(parent)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 40, in start
+    self.sync(c)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 44, in sync
+    replies = self.send_hello(c)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/worker/consumer/mingle.py", line 57, in send_hello
+    replies = inspect.hello(c.hostname, our_revoked._data) or {}
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 156, in hello
+    return self._request('hello', from_node=from_node, revoked=revoked)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 98, in _request
+    return self._prepare(self.app.control.broadcast(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/celery/app/control.py", line 478, in broadcast
+    return self.mailbox(conn)._broadcast(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/pidbox.py", line 340, in _broadcast
+    self._publish(command, arguments, destination=destination,
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/pidbox.py", line 302, in _publish
+    maybe_declare(self.reply_queue(channel))
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/common.py", line 121, in maybe_declare
+    return _maybe_declare(entity, channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/common.py", line 161, in _maybe_declare
+    entity.declare(channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 611, in declare
+    self._create_queue(nowait=nowait, channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 620, in _create_queue
+    self.queue_declare(nowait=nowait, passive=False, channel=channel)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/kombu/entity.py", line 648, in queue_declare
+    ret = channel.queue_declare(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/channel.py", line 1148, in queue_declare
+    return queue_declare_ok_t(*self.wait(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/abstract_channel.py", line 88, in wait
+    self.connection.drain_events(timeout=timeout)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 508, in drain_events
+    while not self.blocking_read(timeout):
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 514, in blocking_read
+    return self.on_inbound_frame(frame)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/method_framing.py", line 55, in on_frame
+    callback(channel, method_sig, buf, None)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/connection.py", line 520, in on_inbound_method
+    return self.channels[channel_id].dispatch_method(
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/abstract_channel.py", line 145, in dispatch_method
+    listener(*args)
+  File "/Users/ediaz/.local/share/virtualenvs/codice-m7cLxlGa/lib/python3.8/site-packages/amqp/channel.py", line 279, in _on_close
+    raise error_for_code(
+amqp.exceptions.NotFound: Queue.declare: (404) NOT_FOUND - failed to perform operation on queue 'dd901b2e-ff3d-3423-a99e-44df27484dd5.reply.celery.pidbox' in vhost '/' due to timeout
+ 
+ -------------- celery@El-Adrel.local v4.4.7 (cliffs)
+--- ***** ----- 
+-- ******* ---- macOS-11.2.3-x86_64-i386-64bit 2021-03-12 02:43:45
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         codice:0x100f87c40
+- ** ---------- .> transport:   amqp://guest:**@localhost:5672//
+- ** ---------- .> results:     rpc://
+- *** --- * --- .> concurrency: 16 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . repos.tasks.clone_remote_repository
+  . repos.tasks.remove_local_repository
+

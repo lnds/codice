@@ -22,6 +22,7 @@ celery = "==4.4.7"
 chardet = "*"
 whitenoise = "*"
 filetype = "*"
+django-nvd3 = "*"
 
 [requires]
 python_version = "3.8"
