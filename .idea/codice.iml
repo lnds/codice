@@ -35,6 +35,8 @@
         <option value="$MODULE_DIR$/developers/templates/developer" />
         <option value="$MODULE_DIR$/files/templates" />
         <option value="$MODULE_DIR$/files/templates/files" />
+        <option value="$MODULE_DIR$/commits/templates" />
+        <option value="$MODULE_DIR$/commits/templates/commit" />
       </list>
     </option>
   </component>

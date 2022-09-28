@@ -1,0 +1,64 @@
+{% extends 'codice/base_home.html' %}
+{% load static %}
+{% load i18n %}
+{% load gravatar %}
+{% load humanize %}
+{% load mathfilters %}
+{% load boxes %}
+{% block content_body %}
+    <h2 class="page-title"><i class="far fa-code-commit"></i>
+        {%trans 'Commit' %}: {{ commit.hexsha|slice:"-6:"}}
+    </h2>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="widget">
+                <header>
+                     <h4><b>SHA:</b> {{ commit.hexsha }}</h4>
+                    <h4><b>Date:</b> {{ commit.date }}</h4>
+                    <h4><b>Author:</b> {{ commit.author }}</h4>
+                </header>
+                <div class="body">
+                    <div class="widget">
+                        <header>
+                            <h4>{% trans 'file changes' %}</h4>
+                        </header>
+                        <table class="table table-hover">
+                            <thead>
+                                <th class="text-left">{% trans 'type' %}&nbsp;</th>
+                                <th class="text-left">{% trans 'file ' %}&nbsp;</th>
+                                <th class="text-center">{% trans 'added ' %}&nbsp;</th>
+                                <th class="text-center">{% trans 'deleted ' %}&nbsp;</th>
+                            </thead>
+                            <tbody>
+                                {% for change in commit.filechange_set.all %}
+                                    <tr>
+                                        <td class="text-center">{{ change.change_type }}&nbsp;</td>
+                                        <td class="text-left">{{ change.file.filename }}&nbsp;</td>
+                                        <td class="text-right">{{ change.insertions|intcomma }}&nbsp;</td>
+                                        <td class="text-right">{{ change.deletions|intcomma }}&nbsp;</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="widget">
+                <header>
+                    <h4>{% trans 'change detail' %}</h4>
+                </header>
+                <div class="body">
+                    <code></code>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block breadcrumb_path %}
+    <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+    <a href="{% url 'commits' %}"><span class="text-gray-lighter">{% trans 'commits' %}</span></a> /
+    <span class="text-gray-light">{{ commit.hexsha|slice:"-6:" }}</span>
+{% endblock %}

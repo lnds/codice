@@ -25,6 +25,7 @@ urlpatterns = [
     path('repos/', include('repos.urls')),
     path('devs/', include('developers.urls')),
     path('files/', include('files.urls')),
+    path('commits/', include('commits.urls')),
     path('auth/', include('authentication.urls')),
     path('admin/', admin.site.urls),
     path('login/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='login'),

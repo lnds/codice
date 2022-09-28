@@ -1,0 +1,61 @@
+{% extends 'codice/base_table.html' %}
+{% load i18n %}
+{% load humanize %}
+{% load gravatar %}
+{% load static %}
+{% block search_form %}
+{% include 'codice/layout/search.html' %}
+{% endblock %}
+{% block breadcrumb_path %}
+    <a href="{% url 'home' %}"><span class="text-gray-lighter">{% trans 'home' %}</span></a> /
+    {% if file %}
+        <a href="{% url 'file-detail-view' file.id %}"><span class="text-gray-lighter">{{ file.filename|lower }}</span></a> /
+    {% endif %}
+    <span>{% trans 'commit' %}</span>
+{% endblock %}
+{% block table_title %}
+    <i class="far fa-code-commit"></i>
+    {% trans 'Commits' %}
+{% endblock %}
+{% block table_head %}
+    <th>{% trans 'ID' %}</th>
+    <th>{% trans 'REPO' %}</th>
+    <th>{% trans 'AUTHOR' %}</th>
+    <th>{% trans 'DATE' %}</th>
+    <th>{% trans 'MESSAGE' %}</th>
+    <th class="text-align-center">{% trans 'ADDED' %}</th>
+    <th class="text-align-center">{% trans 'DELETED' %}</th>
+    <th class="text-align-center">{% trans 'CHANGES' %}</th>
+{% endblock %}
+{% block table_body %}
+    {% for commit in commit_list %}
+        <tr>
+            <td>
+                <a href="{% url 'commit-detail' commit.id %}">
+                    {{ commit.hexsha|slice:"-6:" }}
+                </a>
+            </td>
+            <td>{{ commit.repository }}</td>
+            <td>
+                <a href="{% url 'full-developer-profile' commit.author.id %}">
+                    <img src="{% gravatar_url author.author__email 16 %}" width="16" class="img-circle" onerror="this.src='{% static 'img/1.png' %}'">
+                    {{ commit.author }}
+                </a>
+            </td>
+            <td>{{ commit.date }}</td>
+            <td>{{ commit.message|wordwrap:60|linebreaks }}</td>
+            <td class="text-right">{{ commit.insertions }}</td>
+            <td class="text-right">{{ commit.deletions }}</td>
+            <td class="text-right">{{ commit.filechange_set.count|intcomma }}</td>
+        </tr>
+    {% endfor %}
+{% endblock %}
+{% block table_footer %}
+    {% if page_obj.paginator.count == 0%}
+        {% trans 'no commit' %}
+    {% elif page_obj.paginator.count == 1 %}
+        {{ page_obj.paginator.count }} {% trans 'commit' %}
+    {% else %}
+        {{ page_obj.paginator.count }} {% trans 'commit' %}
+    {% endif %}
+{% endblock %}
