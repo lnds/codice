@@ -121,20 +121,17 @@ else:
 
 BROKER_TRANSPORT_OPTIONS = {'confirm_publish': True}
 
-if 'DOKKU_RABBITMQ_YELLOW_URL' in os.environ:
-    CELERY_BROKER_URL = os.environ.get('DOKKU_RABBITMQ_YELLOW_URL', "")
-    CELERY_RESULT_BACKEND = os.environ.get('DOKKU_RABBITMQ_YELLOW_URL', "")
-elif 'RABBITMQ_URL' in os.environ:
-    CELERY_BROKER_URL = os.environ.get('RABBITMQ_URL', "")
-    CELERY_RESULT_BACKEND = os.environ.get('RABBITMQ_URL', "")
-elif 'RABBIT_ENV_USER' in os.environ:
-    CELERY_BROKER_URL = 'pyamqp://{user}:{password}@{hostname}/{vhost}'.format(
-        user=os.environ.get('RABBIT_ENV_USER', 'admin'),
-        password=os.environ.get('RABBIT_ENV_RABBITMQ_PASS', 'mypass'),
-        hostname=os.environ.get('RABBIT_HOSTNAME', 'rabbit'),
-        vhost=os.environ.get('RABBIT_VHOST', ''))
-else:
-    CELERY_BROKER_URL = 'pyamqp://localhost'
+broker = 'sqla+sqlite:///' + os.path.join(BASE_DIR, 'celery_results.db')
+
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', broker)
+
+CELERY_CACHE_BACKEND = 'django-cache'
+
+backend = 'db+sqlite:///' + os.path.join(BASE_DIR, 'celery.db')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', backend)
+
+print("CELERY BROKER_URL")
+print(CELERY_BROKER_URL)
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
@@ -212,3 +209,7 @@ AUTH_USER_MODEL = 'authentication.User'
 
 CODICE_HOT_SPOTS_THRESHOLD = 30
 CODICE_VERSION = "0.1.0"
+
+DEFAULT_ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+DEFAULT_ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@codice.io')
+DEFAULT_ADMIN_USER = os.environ.get('ADMIN_USER', 'admin')

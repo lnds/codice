@@ -1,0 +1,55 @@
+version: "3"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: codice
+    container_name: codice_app
+    command: "bash ./runserver.sh"
+    environment:
+      - DATABASE_URL
+      - ADMIN_PASSWORD
+      - ADMIN_USER
+      - ADMIN_EMAIL
+      - CELERY_BROKER_URL
+    volumes:
+      - .:/app
+    expose:
+      - 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: codice_worker
+    container_name: codice-worker
+    command: "bash ./runcelery.sh"
+    environment:
+      - DATABASE_URL
+      - CELERY_BROKER_URL
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+
+  redis:
+    image: redis:7-alpine
+
+  db:
+    image: postgres:14-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_DB
+      - POSTGRES_PASSWORD
+    expose:
+      - "5432"
