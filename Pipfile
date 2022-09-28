@@ -22,6 +22,7 @@ celery = {extras = ["amqp", "redis"], version = "*"}
 chardet = "*"
 whitenoise = "*"
 sqlalchemy = "*"
+django-nvd3 = "==0.9.7"
 
 [requires]
 python_version = "3.8"

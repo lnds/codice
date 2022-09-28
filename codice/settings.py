@@ -46,6 +46,7 @@ THIRD_PARTY_APPS = [
     'fontawesome_5',
     'django_gravatar',
     'mathfilters',
+    'django_nvd3',
 ]
 
 LOCAL_APPS = [
@@ -74,7 +75,8 @@ ROOT_URLCONF = 'codice.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join('codice/templates')],
+        'DIRS': [os.path.join('codice/templates'),
+                 os.path.join('developers/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
