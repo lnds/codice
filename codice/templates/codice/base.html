@@ -13,7 +13,7 @@ CODICE
 
 {% block bootstrap4_before_content%}
 <div class="logo">
-    <a href="#% url '#home' %}"><img src="{% static 'img/logo.png' %}" style="border: 0px; margin: 0px"></a>
+    <a href="{% url 'home' %}"><img src="{% static 'img/logo.png' %}" style="border: 0px; margin: 0px"></a>
     <span class="divider" >&nbsp;|&nbsp;{% trans 'version' %} {{ CODICE_VERSION }}</span>
     <span class="divider">&nbsp;|&nbsp;</span>
     {% block breadcrumb_path %}

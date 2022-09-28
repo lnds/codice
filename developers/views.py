@@ -162,7 +162,7 @@ class DeveloperDashboard(DeveloperMixin, ListView):
     template_name = 'developer/dashboard.html'
 
     def get_queryset(self):
-        self.owner = self.request.user.customer
+        self.owner = self.request.user
         if 'repo_id' in self.kwargs:
             self.repo = Repository.objects.get(pk=self.kwargs['repo_id'])
             self.repos = [self.repo]
