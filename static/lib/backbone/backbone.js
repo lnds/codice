@@ -1586,7 +1586,7 @@
   // Cached regex for stripping leading and trailing slashes.
   var rootStripper = /^\/+|\/+$/g;
 
-  // Cached regex for stripping urls of hash.
+  // Cached regex for stripping urls.py of hash.
   var pathStripper = /#.*$/;
 
   // Has the history handling already been started?

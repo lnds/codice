@@ -87,7 +87,7 @@ class File(models.Model):
         ).exclude(
             pk=self.pk
         ).annotate(
-            num_commits=Count(F('filechange__commit') / len(commits))
+            num_commits=Count(F('filechange__commit') / len(commits)),
         ).order_by(
             '-num_commits'
         )

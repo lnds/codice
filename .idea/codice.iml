@@ -33,6 +33,8 @@
         <option value="$MODULE_DIR$/repos/templates/repository/blocks" />
         <option value="$MODULE_DIR$/developers/templates" />
         <option value="$MODULE_DIR$/developers/templates/developer" />
+        <option value="$MODULE_DIR$/files/templates" />
+        <option value="$MODULE_DIR$/files/templates/files" />
       </list>
     </option>
   </component>

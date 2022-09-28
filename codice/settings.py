@@ -47,6 +47,7 @@ THIRD_PARTY_APPS = [
     'django_gravatar',
     'mathfilters',
     'django_nvd3',
+    'django_pygments',
 ]
 
 LOCAL_APPS = [
@@ -76,7 +77,8 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [os.path.join('codice/templates'),
-                 os.path.join('developers/templates')],
+                 os.path.join('developers/templates'),
+                 os.path.join('files/templates'),],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
