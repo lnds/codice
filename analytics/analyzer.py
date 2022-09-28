@@ -149,7 +149,7 @@ class RepoAnalyzer(object):
 
         index = list(File.objects.filter(repository=self.repo, branch=branch).values_list('id', flat=True))
         authors_id = set(Commit.objects.order_by('author').values_list('author', flat=True).distinct())
-        df = pd.DataFrame(0, index=index, columns=authors_id)
+        df = pd.DataFrame(0, index=index, columns=list(authors_id))
 
         file_knowledge_dict = dict()
         sum_file_knowledge_dict = defaultdict(int)
@@ -213,7 +213,7 @@ class RepoAnalyzer(object):
                         r = df.loc[fc.file.id]
 
                         while deletions > 0:
-                            imax = r.idxmax(axis=1)
+                            imax = r.idxmax()
                             v = df.at[fc.file.id, imax]
                             if v >= deletions:
                                 df.at[fc.file.id, imax] = v - deletions
@@ -224,7 +224,7 @@ class RepoAnalyzer(object):
                                 deletions -= v
                                 df.at[fc.file.id, imax] = 0
 
-                        imax = r.idxmax(axis=1)
+                        imax = r.idxmax()
                         if df.at[fc.file.id, imax] > 0:
                             file_owners[fc.file.id] = imax
 
