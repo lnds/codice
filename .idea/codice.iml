@@ -31,6 +31,8 @@
         <option value="$MODULE_DIR$/codice/templates/codice/layout" />
         <option value="$MODULE_DIR$/dashboard/templates/tools" />
         <option value="$MODULE_DIR$/repos/templates/repository/blocks" />
+        <option value="$MODULE_DIR$/developers/templates" />
+        <option value="$MODULE_DIR$/developers/templates/developer" />
       </list>
     </option>
   </component>
