@@ -1,6 +1,6 @@
 {% load static %}
-<script src="//d3plus.org/js/d3.js"></script>
-<script src="//d3plus.org/js/d3plus.js"></script>
+<script src="{% static 'lib/d3/d3.js' %}"></script>
+<script src="{% static 'lib/d3plus/d3plus.js' %}"></script>
 <script>
 var data = [
     {%for k in knowledge%}
