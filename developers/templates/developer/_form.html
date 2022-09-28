@@ -1,0 +1,51 @@
+{% load i18n %}
+<form id="changeProfileForm" method="post"
+      action="{%if project %}{%  url 'developer-update' project.id developer.id %}{%else%}{%  url 'full-developer-update' developer.id %}{%endif%}">
+    {% csrf_token %}
+    <input type="hidden" id="id_id" name="id" value="{{developer.id}}">
+    <input type="hidden" id="id_id" name="id" value="{{developer.id}}">
+    <input type="hidden" id="project_id_id" name="project_id" value="{{project.id}}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header alert alert-info">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+                <h4 class="modal-title" id="delRepoModalLabel">{% trans 'Profile Info for ' %}{{ developer.name }}</h4>
+            </div>
+            <div class="modal-body">
+                <fieldset>
+                    <div class="form-group">
+                        <label class="control-label col-sm-3">{% trans 'Description' %}<span class="required">*</span></label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" name="description" id="description_id" value="{{ developer.description }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-sm-3">{% trans 'Alias of' %}<span class="required">*</span></label>
+                        <div class="col-sm-9">
+                            <select name="is_alias_of" class="form-control">
+                                <option value="0">{% trans 'none' %}</option>
+                                {% for dev in devs %}
+                                    {% if dev.id != developer.id %}
+                                    <option value="{{ dev.id }}">{{ dev }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-check col-sm-12">
+                            <input type="checkbox" class="form-check-input" name="enabled" id="enabled_id" {% if developer.enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="enabled_id">{% trans 'Enabled' %}</label>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-default" >{% trans 'Save' %}</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+    </div>
+</form>

@@ -237,7 +237,7 @@ class DeveloperProfile(DeveloperMixin, DetailView):
     commits_limit = 12
 
     def get_context_data(self, **kwargs):
-        self.owner = self.request.user.customer
+        self.owner = self.request.user
         context = super().get_context_data(**kwargs)
         repos_id = Commit.objects.filter(author=self.object).values('repository_id').distinct()
         self.repos = Repository.objects.filter(id__in=repos_id)
@@ -254,7 +254,7 @@ class DeveloperProfile(DeveloperMixin, DetailView):
 
         context['devs'] = self.devs
         context['total_blame'] = self.total_blame
-        self.owner = self.request.user.customer
+        self.owner = self.request.user
         if self.object.owner != self.owner:
             raise PermissionDenied
 
@@ -312,7 +312,7 @@ class DeveloperProfile(DeveloperMixin, DetailView):
             .aggregate(days=Count('only_date', distinct=True))['days']
 
         owned_files = File.objects.filter(repository__in=self.repos, branch__in=self.branches,
-                                          knowledge_owner=self.object).count()
+                                          ).count()
         total_files = File.objects.filter(repository__in=self.repos, branch__in=self.branches).count()
 
         context['owned_files'] = owned_files
