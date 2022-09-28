@@ -11,7 +11,17 @@ This release requires
 - Python 3.8.
 - Pipenv
 - Posgresql 10.0+    
-- RabbitMq
+- Celery
+
+## Docker
+
+Prepare a .env file or set the variables listed in .env-sample file.
+
+Start docker-compose this way:
+
+    $ docker-compose up --build
+
+And that is
 
 ## Instructions for stand alone development
 
@@ -25,14 +35,13 @@ Execute these steps:
     
     $ cd codice
     
-    $ pipenv install --python `which python3.X` # replace X by 6 or 7
+    $ pipenv install --python `which python3` 
     
     $ pipenv shell
         
     $ pipenv sync --dev # install all neded packages
     
     $ # create database and user on postgresql and setup DATABASE_URL environment variable
-
 
     $ python manage.py makemigrations
     
@@ -42,7 +51,7 @@ Execute these steps:
     
     $ # complete admin creation
     
-    $ rabbitmq-server &
+    $ # start celery
     
 NOTE: if you are using MacOS Big Sur, and have problems with psycopg2-binary, try this before `pipenv install`:
 
@@ -51,7 +60,7 @@ NOTE: if you are using MacOS Big Sur, and have problems with psycopg2-binary, tr
 
 Start two shells, one for codice-server and another for celery:
 
-    $ celery -A codice.celery_app:app worker --loglevel=info
+    $ celery -A codice.celery worker --loglevel=info
     
     $ python manage.py runserver
 
